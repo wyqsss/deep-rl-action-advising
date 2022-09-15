@@ -7,7 +7,7 @@ from constants.general import *
 
 class EpsilonGreedyDQN(DQN):
     def __init__(self, id, config, session, eps_start, eps_final, eps_steps, stats, demonstrations_datasets,
-                 network_naming_structure_v1=False):
+                 network_naming_structure_v1=False, n_heads=1):
         super(EpsilonGreedyDQN, self).__init__(id, config, session, stats, demonstrations_datasets,
                                                network_naming_structure_v1)
 
@@ -16,6 +16,7 @@ class EpsilonGreedyDQN(DQN):
         self.create_replay_memory()
 
         self.minibatch_keys = ('obs', 'action', 'reward', 'obs_next', 'done')
+        self.n_heads = n_heads
 
         self.eps_start = eps_start
         self.eps_final = eps_final
@@ -30,13 +31,13 @@ class EpsilonGreedyDQN(DQN):
             self.build_network(self.name_online, self.tf_vars['obs'], self.config['dqn_dueling'],
                                self.config['dqn_n_hidden_layers'],
                                self.config['dqn_hidden_size_1'], self.config['dqn_hidden_size_2'],
-                               self.config['env_n_actions'])
+                               self.config['env_n_actions'], self.n_heads)
 
         self.tf_vars['pre_fc_features_tar'], self.tf_vars['mid_fc_features_tar'], self.tf_vars['q_values_tar'] = \
             self.build_network(self.name_target, self.tf_vars['obs_tar'], self.config['dqn_dueling'],
                                self.config['dqn_n_hidden_layers'],
                                self.config['dqn_hidden_size_1'], self.config['dqn_hidden_size_2'],
-                               self.config['env_n_actions'])
+                               self.config['env_n_actions'], self.n_heads)
 
         self.update_target_weights = super().build_copy_ops()
         self.build_training_ops()
@@ -50,7 +51,7 @@ class EpsilonGreedyDQN(DQN):
     # ==================================================================================================================
 
     def build_network(self, name, input, is_dueling, n_hidden_layers, dense_hidden_size_1, dense_hidden_size_2,
-                      output_size):
+                      output_size, n_heads=1):
 
         pre_fc_features = None
         if self.config['env_obs_form'] == NONSPATIAL:
@@ -65,6 +66,23 @@ class EpsilonGreedyDQN(DQN):
                                                              hidden_size=dense_hidden_size_1,
                                                              output_size=output_size,
                                                              head_id=1)
+        elif n_heads > 1:
+            q_values = []
+            mid_fc_features = []
+            for i in range(n_heads):
+                q_, mid_fc_ = super().dense_layers(name,inputs=pre_fc_features,
+                                                             is_dueling=is_dueling,
+                                                             hidden_number=n_hidden_layers,
+                                                             hidden_size_1=dense_hidden_size_1,
+                                                             hidden_size_2=dense_hidden_size_2,
+                                                             output_size=output_size,
+                                                             head_id=i)
+                q_values.append(q_)
+                mid_fc_features.append(mid_fc_)
+            
+            q_values = tf.convert_to_tensor(q_values)
+            mid_fc_features = tf.convert_to_tensor(mid_fc_features)
+            
         else:
             q_values, mid_fc_features = super().dense_layers(name,
                                                              inputs=pre_fc_features,
@@ -82,7 +100,11 @@ class EpsilonGreedyDQN(DQN):
     def build_training_ops(self):
         self.tf_vars['action'] = tf.compat.v1.placeholder(tf.compat.v1.int32, [None],
                                                           name='ACTIONS_' + str(self.id))
-        self.tf_vars['td_target'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [None],
+        if self.n_heads > 1:
+            self.tf_vars['td_target'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [self.n_heads, None],
+                                                             name='LABELS_' + str(self.id))
+        else:
+            self.tf_vars['td_target'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [None],
                                                              name='LABELS_' + str(self.id))
 
         self.tf_vars['source'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [None],
@@ -91,17 +113,28 @@ class EpsilonGreedyDQN(DQN):
                                                                name='IMS_WEIGHTS_' + str(self.id))
 
         action_one_hot = tf.compat.v1.one_hot(self.tf_vars['action'], self.config['env_n_actions'], 1.0, 0.0)
+
         q_values_reduced = tf.compat.v1.reduce_sum(tf.compat.v1.math.multiply(self.tf_vars['q_values'],
-                                                                              action_one_hot), reduction_indices=1)
+                                                                              action_one_hot), reduction_indices=2 if self.n_heads > 1 else 1)  # 没有修改，因为multiply可以自适应shape
 
         self.tf_vars['td_error'] = tf.compat.v1.abs(self.tf_vars['td_target'] - q_values_reduced)
+        print(self.tf_vars['q_values'].shape)
+        print(self.tf_vars['td_target'].shape)
+        print(q_values_reduced.shape)
+        mask = np.zeros((self.n_heads, ))
 
+        
         # Q-Learning Loss (1-step)
         if self.config['dqn_rm_type'] == 'per' and self.config['dqn_per_ims']:
             loss_ql = tf.compat.v1.losses.huber_loss(labels=self.tf_vars['td_target'],
                                            predictions=q_values_reduced,
                                            delta=self.config['dqn_huber_loss_delta'],
                                            weights=self.tf_vars['ims_weights'])
+        # elif self.n_heads > 1:
+        #     print("use square loss")
+        #     loss_ql = tf.compat.v1.losses.mean_squared_error(labels=self.tf_vars['td_target'],
+        #                                    predictions=q_values_reduced,   # 针对rcmp使用均方差
+        #                                    )
         else:
             loss_ql = tf.compat.v1.losses.huber_loss(labels=self.tf_vars['td_target'],
                                            predictions=q_values_reduced,
@@ -376,6 +409,34 @@ class EpsilonGreedyDQN(DQN):
 
         q_values_next_batch, q_values_next_target_batch = \
             self.session.run([self.tf_vars['q_values'], self.tf_vars['q_values_tar']], feed_dict=feed_dict)
+        # print(f"q shape {q_values_next_batch.shape}")
+        if self.n_heads > 1:
+            # q_all_heads = [[] for i in range(self.n_heads)]
+            # q_all_heads_tar = [[] for i in range(self.n_heads)]
+            # for head in range(self.n_heads):
+            #     q_all_heads[head] = [q_[head] for q_ in q_values_next_batch]
+            #     q_all_heads_tar[head] = [q_[head] for q_ in q_values_next_target_batch]
+
+            td_tar_all_heads = []
+            # print(len(q_all_heads_tar))
+            # print(len(q_all_heads_tar[0]))
+            for h in range(self.n_heads):
+                action_next_batch = np.argmax(q_values_next_batch[h], axis=1)
+                if self.discrete_bcq_filtering:
+                    for i, state_id in enumerate(state_id_batch_in):
+                        if state_id in self.advice_lookup_table:
+                            action_next_batch[i] = self.advice_lookup_table[state_id]
+                td_target_batch = []
+                for j in range(len(reward_batch)):
+                    td_target = reward_batch[j] + (1.0 - done_batch[j]) * self.config['dqn_gamma'] * \
+                                q_values_next_target_batch[h][j][action_next_batch[j]]
+                    td_target_batch.append(td_target)
+                td_tar_all_heads.append(td_target_batch)
+            return np.array(td_tar_all_heads)
+
+
+
+            
 
         action_next_batch = np.argmax(q_values_next_batch, axis=1)
 
@@ -443,6 +504,9 @@ class EpsilonGreedyDQN(DQN):
 
     def get_greedy_action(self, obs):
         q_values = self.get_q_values(obs)
+        if self.n_heads > 1:
+            q_values = q_values.sum(axis=0)
+        # print(f"qvalues shape is {q_val}")
         return np.argmax(q_values)
 
     # ==================================================================================================================
@@ -468,3 +532,22 @@ class EpsilonGreedyDQN(DQN):
             return np.mean(q_values_vars)
         else:
             return 0.0
+    
+    def get_uncertainty_rcmp(self, obs):
+        if self.config['env_type'] == ALE:
+            obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
+
+        obs_batch = [obs.astype(dtype=np.float32)] * 1
+        feed_dict = {self.tf_vars['obs']: obs_batch}
+        q_values = np.asarray(self.session.run(self.tf_vars['q_values'], feed_dict=feed_dict))
+        # print(f"qval is {q_values}")
+        # qs = []
+        # for q in q_values:
+        #     qs.append(np.squeeze(q))
+        # qs = np.array(qs)
+
+        q_values_vars = np.var(q_values, axis=0)
+        uncertainty = np.mean(q_values_vars)
+
+
+        return uncertainty, q_values_vars, q_values

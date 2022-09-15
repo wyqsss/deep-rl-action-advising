@@ -152,7 +152,7 @@ class Executor:
 
         # Folder structure can be modified here to reflect the user's preference
         self.scripts_dir = os.path.dirname(os.path.abspath(__file__))
-        self.local_workspace_dir = os.path.join(str(pathlib.Path(self.scripts_dir).parent.parent.parent.parent))
+        self.local_workspace_dir = os.path.join(str(pathlib.Path(self.scripts_dir).parent))
 
         print('{} (Scripts directory)'.format(self.scripts_dir))
         print('{} (Local Workspace directory)'.format(self.local_workspace_dir))
@@ -308,7 +308,7 @@ class Executor:
                                                   self.config['dqn_eps_start'],
                                                   self.config['dqn_eps_final'],
                                                   self.config['dqn_eps_steps'], self.stats,
-                                                  demonstrations_datasets=demonstrations_datasets)
+                                                  demonstrations_datasets=demonstrations_datasets, n_heads=self.config['n_heads'])
         elif self.config['dqn_type'] == 'noisy':
             self.student_agent = NoisyNetsDQN(self.config['student_id'], self.config, self.session, self.stats,
                                               demonstrations_datasets=demonstrations_datasets)
@@ -501,7 +501,11 @@ class Executor:
                 elif self.config['advice_collection_method'] == 'tabular_lookup':
                     if state_id not in self.advice_lookup_table:
                         advice_collection_occurred = True
-
+                elif self.config['advice_collection_method'] == 'rcmp':
+                    ucertainty, _, _ = self.student_agent.get_uncertainty_rcmp(obs)
+                    # print(f"uncertainty is {ucertainty}")
+                    if ucertainty > self.config['student_model_uc_th']:
+                        advice_collection_occurred = True
                 # Based on the "uncertainty" estimated by twin network
                 elif self.config['advice_collection_method'] == 'student_model_uc' or \
                         self.config['advice_collection_method'] == 'dual_uc':
@@ -561,6 +565,7 @@ class Executor:
                         advice_collection_occurred = True
 
             if advice_collection_occurred:
+                # print("use advice")
                 if self.config['env_type'] == GRIDWORLD:
                     teacher_action = self.env.optimal_action()
                 else:
@@ -896,11 +901,12 @@ class Executor:
                                                   1 if self.reuse_enabled else 0,
                                                   self.episode_reward_real, self.stats.episode_reward_real_auc,)
 
-                print('{}'.format(self.stats.n_episodes), end=' | ')
-                print('{:.1f}'.format(self.episode_reward), end=' | ')
-                print('{:.1f}'.format(self.episode_reward_real), end=' | ')
-                print('{}'.format(self.episode_duration), end=' | ')
-                print('{}'.format(self.stats.n_env_steps))
+                print('n_episodes : {}'.format(self.stats.n_episodes), end=' | ')
+                print('episode_reward : {:.1f}'.format(self.episode_reward), end=' | ')
+                print('episode_reward_real : {:.1f}'.format(self.episode_reward_real), end=' | ')
+                print('episode_duration : {}'.format(self.episode_duration), end=' | ')
+                print('n_env_steps : {}'.format(self.stats.n_env_steps), end=' | ')
+                print('left advice : {}'.format(self.action_advising_budget))
 
                 if render:
                     if self.config['env_type'] == ALE:
@@ -1191,6 +1197,7 @@ class Executor:
 
                     if not utilise_advice_reuse or eval_action is None:
                         eval_action = self.student_agent.get_greedy_action(eval_obs)
+                        # print(f"action is {eval_action}")
 
                 eval_obs_next, eval_reward, eval_done = None, None, None
 

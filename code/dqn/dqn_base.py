@@ -387,5 +387,6 @@ class DQN(object):
             len(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.id))))
         loader = tf.compat.v1.train.Saver(
             var_list=tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.id))
+        print(f"path is {os.path.join(os.path.join(models_dir, session_name), 'model-' + str(int(checkpoint)) + '.ckpt')}")
         loader.restore(self.session,
                        os.path.join(os.path.join(models_dir, session_name), 'model-' + str(int(checkpoint)) + '.ckpt'))

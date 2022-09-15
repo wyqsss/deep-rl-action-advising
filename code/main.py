@@ -24,12 +24,13 @@ if __name__ == '__main__':
     parser.add_argument('--config-set', type=int, default=None)
     parser.add_argument('--env-key', type=str, default=None)
     parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--n_heads', type=int, default=1)
 
     parser.add_argument('--run-id', type=str, default=None)
     parser.add_argument('--process-index', type=int, default=0)
     parser.add_argument('--machine-name', type=str, default='NA')
     parser.add_argument('--n-training-frames', type=int, default=10000000)
-    parser.add_argument('--n-evaluation-trials', type=int, default=10)
+    parser.add_argument('--n-evaluation-trials', type=int, default=20)
     parser.add_argument('--evaluation-period', type=int, default=50000)
     parser.add_argument('--evaluation-visualization-period', type=int, default=200)
 
@@ -106,9 +107,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--student-model-uc-th', type=float, default=0)
     parser.add_argument('--use-proportional-student-model-uc-th', action='store_true', default=False)
-    parser.add_argument('--proportional-student-model-uc-th-window-size', type=int, default=0)
-    parser.add_argument('--proportional-student-model-uc-th-window-size-min', type=int, default=0)
-    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=0)
+    parser.add_argument('--proportional-student-model-uc-th-window-size', type=int, default=10000)
+    parser.add_argument('--proportional-student-model-uc-th-window-size-min', type=int, default=200)
+    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=70)
 
     parser.add_argument('--teacher-model-uc-th', type=float, default=0)
     parser.add_argument('--autoset-teacher-model-uc-th', action='store_true', default=False)
@@ -119,10 +120,10 @@ if __name__ == '__main__':
 
     # Imitation
     parser.add_argument('--advice-imitation-method', type=str, default='none')  # 'none', 'initial', 'periodic'
-    parser.add_argument('--advice-imitation-period-steps', type=int, default=0)
-    parser.add_argument('--advice-imitation-period-samples', type=int, default=0)
-    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=0)
-    parser.add_argument('--advice-imitation-training-iterations-periodic', type=int, default=0)
+    parser.add_argument('--advice-imitation-period-steps', type=int, default=50000)
+    parser.add_argument('--advice-imitation-period-samples', type=int, default=2500)
+    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=50000)
+    parser.add_argument('--advice-imitation-training-iterations-periodic', type=int, default=20000)
 
     parser.add_argument('--bc-batch-size', type=int, default=32)
     parser.add_argument('--bc-learning-rate', type=float, default=0.0001)
@@ -134,11 +135,11 @@ if __name__ == '__main__':
 
     # Reuse
     parser.add_argument('--advice-reuse-method', type=str, default='none')  # 'none', 'random', 'episodic_random'
-    parser.add_argument('--advice-reuse-probability', type=float, default=0)
+    parser.add_argument('--advice-reuse-probability', type=float, default=0.5)
     parser.add_argument('--advice-reuse-probability-decay', action='store_true', default=False)
-    parser.add_argument('--advice-reuse-probability-decay-begin', type=int, default=0)
-    parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=0)
-    parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
+    parser.add_argument('--advice-reuse-probability-decay-begin', type=int, default=5e4)
+    parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=2.5e6)
+    parser.add_argument('--advice-reuse-probability-final', type=float, default=0.1)
 
     parser.add_argument('--evaluate-advice-reuse-model', action='store_true', default=False)
     parser.add_argument('--generate-extra-visualisations', action='store_true', default=False)
