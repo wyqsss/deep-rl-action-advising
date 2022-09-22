@@ -13,6 +13,7 @@ from constants.config_sets.mape import CONFIG_SETS as CONFIG_SETS_MAPE
 from constants.config_sets.minatar import CONFIG_SETS as CONFIG_SETS_MINATAR
 
 import run_utils
+from test import eval
 
 if __name__ == '__main__':
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--env-key', type=str, default=None)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--n_heads', type=int, default=1)
+    parser.add_argument('--load_student', type=str, default=None)
 
     parser.add_argument('--run-id', type=str, default=None)
     parser.add_argument('--process-index', type=int, default=0)
@@ -102,14 +104,14 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-lm-loss-margin', type=float, default=0.8)
 
     # Collection
-    parser.add_argument('--advice-collection-budget', type=int, default=0)
+    parser.add_argument('--advice-collection-budget', type=int, default=25000)
     parser.add_argument('--advice-collection-method', type=str, default='none')
 
     parser.add_argument('--student-model-uc-th', type=float, default=0)
     parser.add_argument('--use-proportional-student-model-uc-th', action='store_true', default=False)
     parser.add_argument('--proportional-student-model-uc-th-window-size', type=int, default=10000)
     parser.add_argument('--proportional-student-model-uc-th-window-size-min', type=int, default=200)
-    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=70)
+    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=60)
 
     parser.add_argument('--teacher-model-uc-th', type=float, default=0)
     parser.add_argument('--autoset-teacher-model-uc-th', action='store_true', default=False)
@@ -202,3 +204,5 @@ if __name__ == '__main__':
 
     executor = Executor(config, env, eval_env)
     executor.run()
+    # eval(config, eval_env)
+    

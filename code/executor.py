@@ -30,6 +30,7 @@ from behavioural_cloning.bc_base import BehaviouralCloning
 from dqn.dqn_twin import DQNTwin
 
 from constants.general import *
+import time
 
 
 class Executor:
@@ -432,8 +433,9 @@ class Executor:
             self.save_obs_image(obs, self.stats.n_env_steps)
 
         reward_is_seen = False  # For debugging
-
+        # episode_time = 0
         while True:
+            # loop_start = time.time()
             # ----------------------------------------------------------------------------------------------------------
             # # RND observation normalisation - UNUSED
             # if self.config['rnd_compute_coeffs']:
@@ -504,8 +506,28 @@ class Executor:
                 elif self.config['advice_collection_method'] == 'rcmp':
                     ucertainty, _, _ = self.student_agent.get_uncertainty_rcmp(obs)
                     # print(f"uncertainty is {ucertainty}")
-                    if ucertainty > self.config['student_model_uc_th']:
-                        advice_collection_occurred = True
+                    # (1) Adaptive threshold mode
+                    if self.config['use_proportional_student_model_uc_th']:
+                        # Always collect advice until the uc values buffer reach a minimum size
+                        if len(self.student_model_uc_values_buffer) < \
+                                self.config['proportional_student_model_uc_th_window_size_min']:
+                            advice_collection_occurred = True
+                        else:
+                            sorted_values = sorted(self.student_model_uc_values_buffer)
+                            percentile_th = np.percentile(sorted_values,
+                                                        self.config['proportional_student_model_uc_th_percentile'])
+
+                            if ucertainty > percentile_th:
+                                # self.config['proportional_student_model_uc_th_percentile'] += 30/24800
+                                advice_collection_occurred = True
+
+                        self.student_model_uc_values_buffer.append(ucertainty)
+
+                    # (2) Constant threshold mode
+                    else:
+                        if ucertainty > self.config['student_model_uc_th']:
+                            advice_collection_occurred = True
+
                 # Based on the "uncertainty" estimated by twin network
                 elif self.config['advice_collection_method'] == 'student_model_uc' or \
                         self.config['advice_collection_method'] == 'dual_uc':
@@ -641,7 +663,7 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
             # Reuse
-
+            # reuse_start = time.time()
             reuse_model_action = None
 
             if self.config['evaluate_advice_reuse_model']:
@@ -705,7 +727,8 @@ class Executor:
                     self.stats.advices_reused_correct_cum += 1
                     self.advices_reused_ep_correct += 1
                     self.stats.advices_reused_ep_correct_cum += 1
-
+            # reuse_end = time.time()
+            # print('reuse time: %s Seconds'%(reuse_end - reuse_start))
             # ----------------------------------------------------------------------------------------------------------
 
             if action is None:
@@ -928,7 +951,8 @@ class Executor:
                     elif self.config['env_type'] == MINATAR:
                         write_video(self.obs_images, self.save_videos_path, '{}_{}'.format(
                             str(self.stats.n_episodes - 1), str(self.stats.n_env_steps - self.episode_duration)))
-
+                # episode_time = 0
+                # print(' episode_time ---------- : %s Seconds'%(episode_time))
                 obs, render = self.reset_env()
                 state_id = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
                 state_id_next = None
@@ -996,8 +1020,12 @@ class Executor:
                     (self.stats.n_env_steps % self.config['model_save_period'] == 0 or
                      self.stats.n_env_steps >= self.config['n_training_frames']):
                 self.save_model(self.save_model_path)
-
+            # loop_end = time.time()
+            # episode_time += loop_end - loop_start
+            # print('loop running time: %s Seconds'%(loop_end - loop_start))
             if self.stats.n_env_steps >= self.config['n_training_frames']:
+                # print(' episode_time ---------- : %s Seconds'%(episode_time))
+                # episode_time = 0
                 break
 
         print('Env steps: {}'.format(self.stats.n_env_steps))
