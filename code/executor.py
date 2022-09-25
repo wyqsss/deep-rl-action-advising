@@ -121,6 +121,8 @@ class Executor:
         self.advice_lookup_table = {}
 
         self.byol = BYOL_()
+        
+        self.pol_average_distance = None
 
     # ==================================================================================================================
 
@@ -611,7 +613,7 @@ class Executor:
                             self.student_model_uc_values_buffer.append(distance)
                         # (2) Constant threshold mode
                         else:
-                            if distance > self.config['student_model_uc_th']:
+                            if distance > self.pol_average_distance:
                                 advice_collection_occurred = True
 
 
@@ -914,7 +916,7 @@ class Executor:
             if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % 10000 == 0 and self.action_advising_budget > 0:
                 print("begin to train constractive model")
-                self.byol.train(self.student_agent.replay_memory, 1)
+                self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch'])
 
 
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)

@@ -44,6 +44,7 @@ class BYOL_(object):
         distance = torch.mean(distance).numpy()
         print(f"distance is {1 - distance}")
         return 1 - distance
+        
 
     def cal_all(self, replaybuffer, epochs=0):
         self.learner.eval()
@@ -67,13 +68,18 @@ class BYOL_(object):
             # del embedding
         self.features = torch.stack(self.features)
         torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
-        vis_feas = self.features.numpy()
-        tsne_obj = TSNE(n_components=3).fit_transform(vis_feas)
-        x_min, x_max = np.min(tsne_obj, 0), np.max(tsne_obj, 0)
-        tsne_obj = tsne_obj / (x_max - x_min)
-        fig = plt.figure()
-        ax = Axes3D(fig)
-        ax.scatter(tsne_obj[:, 0], tsne_obj[:, 1], tsne_obj[:, 2], s=0.5)
+        pol_average_distance = 0
+        for i in range(len(self.features)):
+            sample = self.features[i]
+            cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+            pol_average_distance += (1 - cos_val)
+        # vis_feas = self.features.numpy()
+        # tsne_obj = TSNE(n_components=3).fit_transform(vis_feas) # 可视化特征池
+        # x_min, x_max = np.min(tsne_obj, 0), np.max(tsne_obj, 0)
+        # tsne_obj = tsne_obj / (x_max - x_min)
+        # fig = plt.figure()
+        # ax = Axes3D(fig)
+        # ax.scatter(tsne_obj[:, 0], tsne_obj[:, 1], tsne_obj[:, 2], s=0.5)
 
         # 关闭了plot的坐标显示
         # plt.axis('off')
@@ -86,9 +92,10 @@ class BYOL_(object):
         #       legend='full',
         #       data=tsne_df)
 
-        plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
-        print(f"feature shape is {self.features.shape}")
+        # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
+        print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance / len(self.features)}")
         self.count += 1
+        return pol_average_distance / len(self.features)
 
 
 
@@ -140,5 +147,6 @@ class BYOL_(object):
                 del images
             print(f"epoch average loss is {epochs_loss / (replaybuffer.__len__()/self.batch_size)}")
         print("call cal alll")
-        self.cal_all(replaybuffer, epochs)
+        pol_average_distance = self.cal_all(replaybuffer, epochs)
+        return pol_average_distance
 

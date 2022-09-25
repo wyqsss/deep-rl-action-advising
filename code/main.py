@@ -155,6 +155,9 @@ if __name__ == '__main__':
     # Batch Constrained DQN related settings
     parser.add_argument('--use-bcq-loss', action='store_true', default=False)
     parser.add_argument('--utilise-imitated-model', action='store_true', default=False)
+    
+    # contrastice learning
+    parser.add_argument('--cons-learning-epoch', type=int, default=150)
 
     # ------------------------------------------------------------------------------------------------------------------
 
