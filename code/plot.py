@@ -115,36 +115,36 @@ def plt_log(logfile):
     print(f"epoch : {epoch[-1]}, reward : {reward[-1]}")
 
 
-envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
-for env in envs:
-    noadvice = f"logs/{env}.log"
-    random = f"logs/{env}_random.log"
-    early = f"logs/{env}_early.log"
-    air = f"logs/{env}_AIR2.log"
-    SUA = f"logs/{env}_SUA.log"
-    SUAIR = f"logs/{env}_SUAIR3.log"
-    # rcmp = f"logs/{env}_rcmp.log"
-    rcmp_msloss = f"logs/{env}_rcmp_msloss.log"
-    rcmp_adap = f"logs/{env}_rcmp_adap.log"
-    rcmp_only = f"logs/{env}_rcmp_adap_only.log"
-    # plt_log(noadvice)
-    # plt_log(early)
-    # plt_log(random)
-    # plt_log(air)
-    # plt_log(SUA)
-    # plt_log(SUAIR)
-    # plt_log(rcmp)
-    plt_log(rcmp_msloss)
-    plt_log(rcmp_adap)
-    plt_log(rcmp_only)
-    plt.margins(x=0, y=0)
-    plt.xlim(0, 5e6)
-    # plt.ylim(0, 4000)
-    plt.grid()
-    plt.legend(["rcmp", "rcmp_adap", "rcmp_only"])
-    plt.title(f"{env}")
-    plt.savefig(f"figures/{env}_rcmp_adap_compare")
-    plt.close()
+# envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
+# for env in envs:
+#     noadvice = f"logs/{env}.log"
+#     random = f"logs/{env}_random.log"
+#     early = f"logs/{env}_early.log"
+#     air = f"logs/{env}_AIR2.log"
+#     SUA = f"logs/{env}_SUA.log"
+#     SUAIR = f"logs/{env}_SUAIR3.log"
+#     # rcmp = f"logs/{env}_rcmp.log"
+#     rcmp_msloss = f"logs/{env}_rcmp_msloss.log"
+#     rcmp_adap = f"logs/{env}_rcmp_adap.log"
+#     rcmp_only = f"logs/{env}_rcmp_adap_only.log"
+#     # plt_log(noadvice)
+#     # plt_log(early)
+#     # plt_log(random)
+#     # plt_log(air)
+#     # plt_log(SUA)
+#     # plt_log(SUAIR)
+#     # plt_log(rcmp)
+#     plt_log(rcmp_msloss)
+#     plt_log(rcmp_adap)
+#     plt_log(rcmp_only)
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 5e6)
+#     # plt.ylim(0, 4000)
+#     plt.grid()
+#     plt.legend(["rcmp", "rcmp_adap", "rcmp_only"])
+#     plt.title(f"{env}")
+#     plt.savefig(f"figures/{env}_rcmp_adap_compare")
+#     plt.close()
 
 # compare
 # for env in envs:
@@ -184,4 +184,11 @@ for env in envs:
 # plt.title("pong")
 # plt.savefig("Pong_rcmp_result")
 
-draw_table()
+# draw_table()
+plt_log("logs/Qbert_SUAIR3.log")
+plt_log("logs/Qbert_SUAIR4.log")
+plt.grid()
+plt.legend(["SUA", "SUA2"])
+# plt.title(f"{env}")
+plt.savefig(f"figures/SUA_compare")
+plt.close()

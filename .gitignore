@@ -133,3 +133,5 @@ dmypy.json
 Runs/*
 *.png
 *.zip
+*.jpg
+code/logs/*

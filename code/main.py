@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-per-ims', action='store_true', default=False)
     parser.add_argument('--dqn-per-alpha', type=float, default=0.4)
     parser.add_argument('--dqn-per-beta', type=float, default=0.6)
-    parser.add_argument('--dqn-rm-init', type=int, default=50000)
+    parser.add_argument('--dqn-rm-init', type=int, default=10000)
     parser.add_argument('--dqn-rm-max', type=int, default=1000000)
     parser.add_argument('--dqn-target-update', type=int, default=7500)
     parser.add_argument('--dqn-batch-size', type=int, default=32)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument('--use-proportional-student-model-uc-th', action='store_true', default=False)
     parser.add_argument('--proportional-student-model-uc-th-window-size', type=int, default=10000)
     parser.add_argument('--proportional-student-model-uc-th-window-size-min', type=int, default=200)
-    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=60)
+    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=70)
 
     parser.add_argument('--teacher-model-uc-th', type=float, default=0)
     parser.add_argument('--autoset-teacher-model-uc-th', action='store_true', default=False)

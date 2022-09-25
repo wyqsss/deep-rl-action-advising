@@ -1,4 +1,5 @@
 import os
+from turtle import distance
 import psutil
 import pathlib
 import random
@@ -13,6 +14,7 @@ tf.compat.v1.disable_v2_behavior()
 
 from dqn.dqn_egreedy import EpsilonGreedyDQN
 from dqn.dqn_noisynets import NoisyNetsDQN
+from dqn.byol import BYOL_
 
 from run_statistics import Statistics
 
@@ -117,6 +119,8 @@ class Executor:
 
         # Advice lookup table for AIR-Simple
         self.advice_lookup_table = {}
+
+        self.byol = BYOL_()
 
     # ==================================================================================================================
 
@@ -477,7 +481,7 @@ class Executor:
                 action_is_explorative = False
             else:
                 self_action, action_is_explorative = self.student_agent.get_action(obs)
-
+            # print(f"obs shape is {obs.shape}")
             if action_is_explorative:
                 self.stats.exploration_steps_taken += 1
                 self.stats.exploration_steps_taken_episode += 1
@@ -585,6 +589,31 @@ class Executor:
                             advice_collection_occurred = True
                     else:
                         advice_collection_occurred = True
+                
+                elif self.config['advice_collection_method'] == 'sample_efficency':   # 依据样本的多样性，请求advice
+                    if self.student_agent.replay_memory.__len__() <= self.config['dqn_rm_init'] + 1:
+                        advice_collection_occurred = True
+                    else:
+                        distance = self.byol.cal(obs)
+
+                        # (1) Adaptive threshold mode
+                        if self.config['use_proportional_student_model_uc_th']:
+                            # Always collect advice until the uc values buffer reach a minimum size
+                            if len(self.student_model_uc_values_buffer) < \
+                                    self.config['proportional_student_model_uc_th_window_size_min']:
+                                advice_collection_occurred = True
+                            else:
+                                sorted_values = sorted(self.student_model_uc_values_buffer)
+                                percentile_th = np.percentile(sorted_values,
+                                                          self.config['proportional_student_model_uc_th_percentile'])
+                                if distance > percentile_th:
+                                    advice_collection_occurred = True
+                            self.student_model_uc_values_buffer.append(distance)
+                        # (2) Constant threshold mode
+                        else:
+                            if distance > self.config['student_model_uc_th']:
+                                advice_collection_occurred = True
+
 
             if advice_collection_occurred:
                 # print("use advice")
@@ -881,6 +910,12 @@ class Executor:
             loss_twin = 0.0
             if self.config['dqn_twin'] and feed_dict is not None:
                 loss_twin = self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
+
+            if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
+                and self.student_agent.replay_memory.__len__() % 10000 == 0 and self.action_advising_budget > 0:
+                print("begin to train constractive model")
+                self.byol.train(self.student_agent.replay_memory, 1)
+
 
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
             if self.config['env_type'] == GRIDWORLD and \
