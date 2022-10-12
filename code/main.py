@@ -158,6 +158,8 @@ if __name__ == '__main__':
     
     # contrastice learning
     parser.add_argument('--cons-learning-epoch', type=int, default=150)
+    # 平均余弦距离的系数
+    parser.add_argument('--gamma', type=float, default=1.0)
 
     # ------------------------------------------------------------------------------------------------------------------
 

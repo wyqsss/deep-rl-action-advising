@@ -916,7 +916,7 @@ class Executor:
             if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % 10000 == 0 and self.action_advising_budget > 0:
                 print("begin to train constractive model")
-                self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch'])
+                self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch']) * self.config['gamma']
 
 
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
