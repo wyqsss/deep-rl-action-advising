@@ -157,7 +157,8 @@ if __name__ == '__main__':
     parser.add_argument('--utilise-imitated-model', action='store_true', default=False)
     
     # contrastice learning
-    parser.add_argument('--cons-learning-epoch', type=int, default=150)
+    parser.add_argument('--cons-learning-epoch', type=int, default=100)
+    parser.add_argument('--cons-learning-inter', type=int, default=10000)
 
     # ------------------------------------------------------------------------------------------------------------------
 
