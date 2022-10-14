@@ -157,8 +157,12 @@ if __name__ == '__main__':
     parser.add_argument('--utilise-imitated-model', action='store_true', default=False)
     
     # contrastice learning
+
+    # 平均余弦距离的系数
+    parser.add_argument('--gamma', type=float, default=1.0) # 平均余弦距离的系数
     parser.add_argument('--cons-learning-epoch', type=int, default=100)
     parser.add_argument('--cons-learning-inter', type=int, default=10000)
+
 
     # ------------------------------------------------------------------------------------------------------------------
 

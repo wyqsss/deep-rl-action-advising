@@ -10,8 +10,10 @@ from torchvision import transforms
 import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D 
 import matplotlib.pyplot as plt
+import time
 from torch.utils.data import DataLoader
 from dqn.buffer_dataset import BufferDataset
+
 
 class BYOL_(object):
     def __init__(self, batch_size=32):
@@ -31,7 +33,7 @@ class BYOL_(object):
         self.count = 0
         self.m_featur = None
 
-    def cal(self, obs): # 计算样本和样本池中的特征距离
+    def cal(self, obs): # 计算样本和样本池中的特征距离(平均余弦距离)
         self.learner.eval()
         obs = np.expand_dims(obs, axis=0)
         # obs = np.expand_dims(np.mean(obs, axis=1), axis=1) # .repeat(3, axis=1)
@@ -76,6 +78,25 @@ class BYOL_(object):
         self.features = torch.stack(self.features)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
+        dist = []
+        for i in range(len(self.features)):
+            sample = self.features[i]
+            cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+            pol_average_distance += (1 - cos_val)
+        #     dist.append(1-cos_val)
+            
+        # idxs = np.where(dist <= np.percentile(dist, 99.5))   # 把离群点的特征也剔除
+        # self.features = self.features[idxs]
+        # for i in range(len(self.features)):
+        #     sample = self.features[i]
+        #     cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+        #     pol_average_distance += (1 - cos_val)
+        
+        pol_average_distance = pol_average_distance / len(self.features)
+        # new_dist = [ele for ele in dist if ele < np.percentile(dist, 99)]
+        # pol_average_distance = np.mean(new_dist)
+        # vis_feas = self.features.numpy()
+
         # self.m_feature = torch.mean(self.features, dim=0)
         # for i in range(len(self.features)):
         #     sample = self.features[i]
@@ -84,6 +105,7 @@ class BYOL_(object):
         #     # pol_average_distance += (1 - cos_val)
         #     pol_average_distance += dist
         # # vis_feas = self.features.numpy()
+
         # tsne_obj = TSNE(n_components=3).fit_transform(vis_feas) # 可视化特征池
         # x_min, x_max = np.min(tsne_obj, 0), np.max(tsne_obj, 0)
         # tsne_obj = tsne_obj / (x_max - x_min)
@@ -103,9 +125,9 @@ class BYOL_(object):
         #       data=tsne_df)
 
         # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
-        print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance / len(self.features)}")
+        print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
         self.count += 1
-        return pol_average_distance / len(self.features)
+        return pol_average_distance
 
 
 
@@ -123,6 +145,7 @@ class BYOL_(object):
         #     pic.save(f"test_figures/Qbert_grey_batch_{i}_2.jpg") 
         #     pic = Image.fromarray(np.uint8(images[i][3]))
         #     pic.save(f"test_figures/Qbert_grey_batch_{i}_3.jpg") 
+
         buffer_dataset = BufferDataset(replaybuffer)
         buffer_loader = DataLoader(buffer_dataset, batch_size=self.batch_size, shuffle=True)
         ep = 0
@@ -158,6 +181,7 @@ class BYOL_(object):
                 loss.backward()
                 self.opt.step()
                 self.learner.update_moving_average() # update moving average of target encoder
+
                 # del images
                 ep += 1
             print(f"epoch average loss is {epochs_loss / ep}")
