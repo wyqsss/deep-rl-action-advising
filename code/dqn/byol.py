@@ -44,13 +44,13 @@ class BYOL_(object):
         # print(f"embedding is {embedding}")
         distance = torch.mm(self.features, embedding.reshape(-1, 1))
         # print(f"distance shape is {distance}")
-        distance = torch.mean(distance).numpy()
+        distance = torch.mean(distance).numpy() # 已经求均值了
         # avg_dist = 0
         # for fea in self.features:
         #     dist = torch.sqrt(torch.sum(torch.square(fea - self.m_feature)))
         #     avg_dist += dist
-        print(f"distance is {(1 - distance) / len(self.features)}")
-        return (1 - distance) / len(self.features)
+        print(f"distance is {1 - distance}")
+        return distance
         
 
     def cal_all(self, replaybuffer, epochs=0):
@@ -74,7 +74,7 @@ class BYOL_(object):
             # del projection
             # del embedding
         self.features = torch.stack(self.features)
-        torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
+        # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
         # self.m_feature = torch.mean(self.features, dim=0)
         # for i in range(len(self.features)):
@@ -158,7 +158,7 @@ class BYOL_(object):
                 loss.backward()
                 self.opt.step()
                 self.learner.update_moving_average() # update moving average of target encoder
-                del images
+                # del images
                 ep += 1
             print(f"epoch average loss is {epochs_loss / ep}")
         print("call cal alll")
