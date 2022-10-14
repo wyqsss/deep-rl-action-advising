@@ -130,11 +130,11 @@ class EpsilonGreedyDQN(DQN):
                                            predictions=q_values_reduced,
                                            delta=self.config['dqn_huber_loss_delta'],
                                            weights=self.tf_vars['ims_weights'])
-        # elif self.n_heads > 1:
-        #     print("use square loss")
-        #     loss_ql = tf.compat.v1.losses.mean_squared_error(labels=self.tf_vars['td_target'],
-        #                                    predictions=q_values_reduced,   # 针对rcmp使用均方差
-        #                                    )
+        elif self.n_heads > 1:
+            print("use square loss")
+            loss_ql = tf.compat.v1.losses.mean_squared_error(labels=self.tf_vars['td_target'],
+                                           predictions=q_values_reduced,   # 针对rcmp使用均方差
+                                           )
         else:
             loss_ql = tf.compat.v1.losses.huber_loss(labels=self.tf_vars['td_target'],
                                            predictions=q_values_reduced,
