@@ -7,6 +7,6 @@ Pong 0.8
 
 Enduro 0.8
 
-Qbert 0.6 xxxx  -> 0.5
+Qbert 0.6 xxxx  -> 0.5 -> 0.45
 
 Seaquest 1.0
