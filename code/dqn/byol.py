@@ -29,7 +29,7 @@ class BYOL_(object):
         self.toPIL = transforms.ToPILImage()
         self.count = 0
 
-    def cal(self, obs): # 计算样本和样本池中的特征距离
+    def cal(self, obs): # 计算样本和样本池中的特征距离(平均余弦距离)
         self.learner.eval()
         obs = np.expand_dims(obs, axis=0)
         # obs = np.expand_dims(np.mean(obs, axis=1), axis=1) # .repeat(3, axis=1)
@@ -128,7 +128,7 @@ class BYOL_(object):
         #     pic = Image.fromarray(np.uint8(images[i][3]))
         #     pic.save(f"test_figures/Qbert_grey_batch_{i}_3.jpg") 
 
-        for _ in range(epochs // 2**(self.count)):
+        for _ in range(max(epochs // 2**(self.count), 10)):
             epochs_loss = 0
             # epo_start = time.time()
             for idx in range(replaybuffer.__len__() // self.batch_size):

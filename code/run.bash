@@ -34,7 +34,7 @@ do
     # SUAIR
     # CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --dqn-twin --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method student_model_uc --use-proportional-student-model-uc-th --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_SUAIR4.log 2>& 1 &
     # sample effciency
-    CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 100 --dqn-dueling > logs/$env\_sm_100_2_same5.log 2>& 1 &
+    CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 100 --dqn-dueling > logs/$env\_sm_100_2_same4.log 2>& 1 &
 done
 
 # python -u main.py --env-key ALE-Seaquest --use-gpu --dqn-twin --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method student_model_uc --use-proportional-student-model-uc-th --advice-imitation-method periodic --advice-reuse-method extended
