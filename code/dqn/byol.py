@@ -1,7 +1,8 @@
 from PIL import Image
 import torch
 from torchvision import models
-from byol_pytorch import BYOL
+# from byol_pytorch import BYOL
+from dqn.action_byol import BYOL
 import numpy as np
 import torch.nn.functional as F
 from sklearn.manifold import TSNE
@@ -151,7 +152,8 @@ class BYOL_(object):
         ep = 0
         for _ in range(max(epochs // 2**(self.count), 10)):
             epochs_loss = 0
-            for  idx, images in enumerate(buffer_loader):
+            for  idx, trans in enumerate(buffer_loader):
+                images, actions, next_images = trans[0], trans[1], trans[2]
             # for idx in range(replaybuffer.__len__() // self.batch_size):
                 # images = replaybuffer._encode_sample([item for item in range(idx, idx + self.batch_size\
                 #      if idx + self.batch_size < replaybuffer.__len__() else replaybuffer.__len__())], True)[0]
@@ -173,8 +175,10 @@ class BYOL_(object):
                 #     pic.save(f"test_figures/Qbert_batch_{i}.jpg")
                 # print(images.shape)
                 images = images.cuda()
+                actions = actions.cuda()
+                next_images = next_images.cuda()
             # print(f"images shape is {images.shape}")
-                loss = self.learner(images)
+                loss = self.learner(images, actions, next_images)
                 # print(f"contrstive loss is : {loss.item()}")
                 epochs_loss += loss.item()
                 self.opt.zero_grad()

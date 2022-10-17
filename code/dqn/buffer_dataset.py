@@ -22,7 +22,9 @@ class BufferDataset(Dataset):
     def __getitem__(self, idx):
         # idx-[0->len(images)]
         images = torch.tensor(self.data._encode_sample([idx], True)[0], dtype=torch.float32)[0]
-        return images
+        actions = torch.tensor(self.data._encode_sample([idx], True)[1], dtype=torch.float32)[0]
+        next_images = torch.tensor(self.data._encode_sample([idx], True)[3], dtype=torch.float32)[0]
+        return [images, actions, next_images]
 
 
 
