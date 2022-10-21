@@ -17,14 +17,16 @@ from dqn.buffer_dataset import BufferDataset
 
 
 class BYOL_(object):
-    def __init__(self, batch_size=32):
+    def __init__(self, batch_size=32, n_actions=0):
         self.batch_size = batch_size
+        self.n_actions = n_actions
         resnet = models.resnet50(pretrained=True)
         resnet.conv1 = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.learner = BYOL(
             resnet,
             image_size = 64,
-            hidden_layer = 'avgpool'
+            hidden_layer = 'avgpool',
+            action_shape = self.n_actions
         ).cuda()
 
         self.opt = torch.optim.Adam(self.learner.parameters(), lr=3e-4)
@@ -176,6 +178,8 @@ class BYOL_(object):
                 # print(images.shape)
                 images = images.cuda()
                 actions = actions.cuda()
+                actions = F.one_hot(actions.to(torch.int64), num_classes=self.n_actions).to(torch.float)
+                # print(f"action shape is {actions.shape}")
                 next_images = next_images.cuda()
             # print(f"images shape is {images.shape}")
                 loss = self.learner(images, actions, next_images)

@@ -5,6 +5,7 @@ from scipy.ndimage import gaussian_filter1d
 from tabulate import tabulate
 import seaborn as sns
 from pandas import DataFrame
+import numpy as np
 import pandas as pd
 
 def get_data(logfile):
@@ -114,7 +115,44 @@ def plt_log(logfile):
 
     print(f"epoch : {epoch[-1]}, reward : {reward[-1]}")
 
+def plt_muti_log(name):
+    rewards = [[] for n in range(5)]
+    epochs = [[] for n in range(5)]
+    for i in range(5):
+        data = open(name+f"_{i+1}.log", 'r')
+        for line in data:
+            items = line.split(" ")
+            if items[0] == "Evaluation" and items[1] == '@':
+                epochs[i-1].append(int(float(items[2])))
+                rewards[i-1].append(float(items[-1])) 
+    rewards = np.array(rewards)
+    print(rewards.shape)
+    mid_rewards = np.median(rewards, axis=0)
+    max_rewards = np.max(rewards, axis=0)
+    min_rewards = np.min(rewards, axis=0)
+    # print(max_rewards.shape)
+    lengths = [len(epochs[i]) for i in range(5)]
+    if min(lengths) < 200:
+        valid_length = min(lengths)
+        mid_rewards = mid_rewards[:valid_length]
+        max_rewards = max_rewards[:valid_length]
+        min_rewards = min_rewards[:valid_length]
+        epochs[0] = epochs[0][:valid_length]
+    p1, = plt.plot(epochs[0], gaussian_filter1d(mid_rewards, sigma=3))
+    print(f"min : {len(min_rewards)}, max : {len(max_rewards)}")
+    plt.fill_between(epochs[0], max_rewards, min_rewards, alpha=0.3)
+    return p1
 
+envs = [ "Seaquest", "Qbert"]
+for env in envs:
+    p1 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch")
+    p2 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch")
+    plt.margins(x=0, y=0)
+    plt.grid()
+    plt.title(f"{env}")
+    plt.legend([p1, p2], ['acbyol', 'raw', 'SUAIR', 'avg', 'adap'])
+    plt.savefig(f"figures/{env}_muti_result")
+    plt.close()
 # envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
 # for env in envs:
 #     noadvice = f"logs/{env}.log"
@@ -185,10 +223,10 @@ def plt_log(logfile):
 # plt.savefig("Pong_rcmp_result")
 
 # draw_table()
-plt_log("logs/Qbert_SUAIR3.log")
-plt_log("logs/Qbert_SUAIR4.log")
-plt.grid()
-plt.legend(["SUA", "SUA2"])
-# plt.title(f"{env}")
-plt.savefig(f"figures/SUA_compare")
-plt.close()
+# plt_log("logs/Qbert_SUAIR3.log")
+# plt_log("logs/Qbert_SUAIR4.log")
+# plt.grid()
+# plt.legend(["SUA", "SUA2"])
+# # plt.title(f"{env}")
+# plt.savefig(f"figures/SUA_compare")
+# plt.close()
