@@ -919,7 +919,7 @@ class Executor:
             if self.config['dqn_twin'] and feed_dict is not None:
                 loss_twin = self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
 
-            if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() == self.config['dqn_rm_init'] \
+            if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % self.config['cons_learning_inter'] == 0 and self.action_advising_budget > 0:
                 print("begin to train constractive model")
                 self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch']) * self.config['gamma']

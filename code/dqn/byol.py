@@ -1,8 +1,10 @@
+from cmath import cos
+from turtle import distance
 from PIL import Image
 import torch
 from torchvision import models
-# from byol_pytorch import BYOL
-from dqn.action_byol import BYOL
+from byol_pytorch import BYOL
+# from dqn.action_byol import BYOL
 import numpy as np
 import torch.nn.functional as F
 from sklearn.manifold import TSNE
@@ -26,12 +28,14 @@ class BYOL_(object):
             resnet,
             image_size = 64,
             hidden_layer = 'avgpool',
-            action_shape = self.n_actions
+            # action_shape = self.n_actions
         ).cuda()
 
         self.opt = torch.optim.Adam(self.learner.parameters(), lr=3e-4)
         self.features = []
-        
+        self.features_neg = []
+        self.features_pos = []
+        self.features_norm = []
         self.toPIL = transforms.ToPILImage()
         self.count = 0
         self.m_featur = None
@@ -47,22 +51,41 @@ class BYOL_(object):
         # print(embedding)
         # print(f"pool feature is {self.features[0]}")
         # print(f"embedding is {embedding}")
-        distance = torch.mm(self.features, embedding.reshape(-1, 1))
+
+        # new method 离reward近， 离norm远
+        cos_neg, cos_pos = 0, 0
+        if len(self.features_pos) > 0:
+            cos_pos = torch.mm(self.features_pos, embedding.reshape(-1, 1))
+        if len(self.features_neg) > 0:
+            cos_neg = torch.mm(self.features_neg, embedding.reshape(-1, 1))
+
+        cos_norm = torch.mm(self.features_norm, embedding.reshape(-1, 1))
+
+        distance = (cos_pos + cos_neg) / cos_norm  # 这个值越大越好
+        print(f"distance is {distance}")
+        return  distance
+        # distance = torch.mm(self.features, embedding.reshape(-1, 1))
         # print(f"distance shape is {distance}")
-        distance = torch.mean(distance).numpy() # 已经求均值了
+        # distance = torch.mean(distance).numpy() # 已经求均值了
         # avg_dist = 0
         # for fea in self.features:
         #     dist = torch.sqrt(torch.sum(torch.square(fea - self.m_feature)))
         #     avg_dist += dist
-        print(f"distance is {1 - distance}")
-        return distance
+        # print(f"distance is {1 - distance}")
+        # return  1 - distance
         
 
     def cal_all(self, replaybuffer, epochs=0):
         self.learner.eval()
         self.features = []
+        self.features_neg = []
+        self.features_pos = []
+        self.features_norm = []
         for idx in range(replaybuffer.__len__()):
-            obs = replaybuffer._encode_sample([idx], True)[0]
+            batch = replaybuffer._encode_sample([idx], True)
+            obs = batch[0]
+            reward = batch[2]
+
             # obs = np.expand_dims(np.mean(obs, axis=1), axis=1) # .repeat(3, axis=1)
             # print(f"obs shape is {obs.shape}")
             obs = torch.tensor(obs, dtype=torch.float32).cuda()
@@ -74,11 +97,23 @@ class BYOL_(object):
                 # print(embedding)
                 embedding = embedding.cpu()
                 self.features.append(embedding.clone())
+                if reward > 0:
+                    self.features_pos.append(embedding.clone())
+                elif reward < 0:
+                    self.features_neg.append(embedding.clone())
+                else:
+                    self.features_norm.append(embedding.clone())
                 del obs
                 torch.cuda.empty_cache()
             # del projection
             # del embedding
         self.features = torch.stack(self.features)
+        if len(self.features_pos) > 0:
+            self.features_pos = torch.stack(self.features_pos)
+        if len(self.features_neg) > 0:
+            self.features_neg = torch.stack(self.features_neg)
+        if len(self.features_norm) > 0:
+            self.features_norm = torch.stack(self.features_norm)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
         dist = []
@@ -129,6 +164,7 @@ class BYOL_(object):
 
         # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
         print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
+        print(f"positive features is : {len(self.features_pos)}, negetive features is {len(self.features_neg)}, normal features is {len(self.features_norm)}")
         self.count += 1
         return pol_average_distance
 
@@ -153,6 +189,7 @@ class BYOL_(object):
         buffer_loader = DataLoader(buffer_dataset, batch_size=self.batch_size, shuffle=True)
         ep = 0
         for _ in range(max(epochs // 2**(self.count), 10)):
+        # for _ in range(epochs):
             epochs_loss = 0
             for  idx, trans in enumerate(buffer_loader):
                 images, actions, next_images = trans[0], trans[1], trans[2]
@@ -182,7 +219,7 @@ class BYOL_(object):
                 # print(f"action shape is {actions.shape}")
                 next_images = next_images.cuda()
             # print(f"images shape is {images.shape}")
-                loss = self.learner(images, actions, next_images)
+                loss = self.learner(images)
                 # print(f"contrstive loss is : {loss.item()}")
                 epochs_loss += loss.item()
                 self.opt.zero_grad()
