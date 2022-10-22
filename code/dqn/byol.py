@@ -53,7 +53,7 @@ class BYOL_(object):
         #     dist = torch.sqrt(torch.sum(torch.square(fea - self.m_feature)))
         #     avg_dist += dist
         print(f"distance is {1 - distance}")
-        return distance
+        return 1 - distance
         
 
     def cal_all(self, replaybuffer, epochs=0):
