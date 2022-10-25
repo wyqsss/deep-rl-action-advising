@@ -28,7 +28,7 @@ class BYOL_(object):
             resnet,
             image_size = 64,
             hidden_layer = 'avgpool',
-            # action_shape = self.n_actions
+            action_shape = self.n_actions
         ).cuda()
 
         self.opt = torch.optim.Adam(self.learner.parameters(), lr=3e-4)
