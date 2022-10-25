@@ -3,8 +3,8 @@ from turtle import distance
 from PIL import Image
 import torch
 from torchvision import models
-from byol_pytorch import BYOL
-# from dqn.action_byol import BYOL
+# from byol_pytorch import BYOL
+from dqn.action_byol import BYOL
 import numpy as np
 import torch.nn.functional as F
 from sklearn.manifold import TSNE
@@ -55,11 +55,11 @@ class BYOL_(object):
         # new method 离reward近， 离norm远
         cos_neg, cos_pos = 0, 0
         if len(self.features_pos) > 0:
-            cos_pos = torch.mm(self.features_pos, embedding.reshape(-1, 1))
+            cos_pos = torch.mean(torch.mm(self.features_pos, embedding.reshape(-1, 1))).numpy()
         if len(self.features_neg) > 0:
-            cos_neg = torch.mm(self.features_neg, embedding.reshape(-1, 1))
+            cos_neg = torch.mean(torch.mm(self.features_neg, embedding.reshape(-1, 1))).numpy()
 
-        cos_norm = torch.mm(self.features_norm, embedding.reshape(-1, 1))
+        cos_norm = torch.mean(torch.mm(self.features_norm, embedding.reshape(-1, 1))).numpy()
 
         distance = (cos_pos + cos_neg) / cos_norm  # 这个值越大越好
         print(f"distance is {distance}")
@@ -116,11 +116,11 @@ class BYOL_(object):
             self.features_norm = torch.stack(self.features_norm)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
-        dist = []
-        for i in range(len(self.features)):
-            sample = self.features[i]
-            cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
-            pol_average_distance += (1 - cos_val)
+        # dist = []
+        # for i in range(len(self.features)):
+        #     sample = self.features[i]
+        #     cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+        #     pol_average_distance += (1 - cos_val)
         #     dist.append(1-cos_val)
             
         # idxs = np.where(dist <= np.percentile(dist, 99.5))   # 把离群点的特征也剔除
@@ -130,7 +130,7 @@ class BYOL_(object):
         #     cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
         #     pol_average_distance += (1 - cos_val)
         
-        pol_average_distance = pol_average_distance / len(self.features)
+        # pol_average_distance = pol_average_distance / len(self.features)
         # new_dist = [ele for ele in dist if ele < np.percentile(dist, 99)]
         # pol_average_distance = np.mean(new_dist)
         # vis_feas = self.features.numpy()
@@ -163,7 +163,7 @@ class BYOL_(object):
         #       data=tsne_df)
 
         # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
-        print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
+        # print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
         print(f"positive features is : {len(self.features_pos)}, negetive features is {len(self.features_neg)}, normal features is {len(self.features_norm)}")
         self.count += 1
         return pol_average_distance
@@ -219,7 +219,7 @@ class BYOL_(object):
                 # print(f"action shape is {actions.shape}")
                 next_images = next_images.cuda()
             # print(f"images shape is {images.shape}")
-                loss = self.learner(images)
+                loss = self.learner(images, actions, next_images)
                 # print(f"contrstive loss is : {loss.item()}")
                 epochs_loss += loss.item()
                 self.opt.zero_grad()

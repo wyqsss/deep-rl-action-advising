@@ -102,7 +102,7 @@ def seaborn_log(logfile, method):
                                 label=method, ci='sd', color=color)  # style="variable", markers=True)
 
 
-def plt_log(logfile):
+def plt_log(logfile, color=None):
     data = open(logfile, 'r')
     reward = []
     epoch = []
@@ -111,11 +111,14 @@ def plt_log(logfile):
         if items[0] == "Evaluation" and items[1] == '@':
             epoch.append(int(float(items[2])))
             reward.append(float(items[-1]))
-    plt.plot(epoch, gaussian_filter1d(reward, sigma=3))
+    p1, = plt.plot(epoch, gaussian_filter1d(reward, sigma=2), color=color)
 
     print(f"epoch : {epoch[-1]}, reward : {reward[-1]}")
+    return p1
 
-def plt_muti_log(name):
+colors = ['g', 'dodgerblue', 'orange', 'r']
+
+def plt_muti_log(name, color=None):
     rewards = [[] for n in range(5)]
     epochs = [[] for n in range(5)]
     for i in range(5):
@@ -125,33 +128,43 @@ def plt_muti_log(name):
             if items[0] == "Evaluation" and items[1] == '@':
                 epochs[i-1].append(int(float(items[2])))
                 rewards[i-1].append(float(items[-1])) 
+    lengths = [len(epochs[i]) for i in range(5)]
+    for i in range(5):
+        if len(rewards[i]) > min(lengths):
+            rewards[i] = rewards[i][:min(lengths)]
     rewards = np.array(rewards)
     print(rewards.shape)
     mid_rewards = np.median(rewards, axis=0)
     max_rewards = np.max(rewards, axis=0)
     min_rewards = np.min(rewards, axis=0)
-    # print(max_rewards.shape)
-    lengths = [len(epochs[i]) for i in range(5)]
+
+    # for i in range(len(mid_rewards)):
+    #     if mid_rewards[i] > max_rewards[i] or mid_rewards[i] < min_rewards[i]:
+    #         print(f"mid {mid_rewards[i]}, max {max_rewards[i]}, min {min_rewards[i]}")
+    # # print(max_rewards.shape)
+    
     if min(lengths) < 200:
         valid_length = min(lengths)
-        mid_rewards = mid_rewards[:valid_length]
-        max_rewards = max_rewards[:valid_length]
-        min_rewards = min_rewards[:valid_length]
         epochs[0] = epochs[0][:valid_length]
-    p1, = plt.plot(epochs[0], gaussian_filter1d(mid_rewards, sigma=3))
+    plt.plot(epochs[0],gaussian_filter1d(mid_rewards, sigma=2), color=color)
+    # plt.plot(epochs[0], max_rewards, color=color)
+    # plt.plot(epochs[0], min_rewards, color=color)
     print(f"min : {len(min_rewards)}, max : {len(max_rewards)}")
-    plt.fill_between(epochs[0], max_rewards, min_rewards, alpha=0.3)
+    p1 = plt.fill_between(epochs[0], max_rewards, min_rewards, alpha=0.3, color=color)
     return p1
 
 envs = [ "Seaquest", "Qbert"]
 for env in envs:
-    p1 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch")
-    p2 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch")
+    p1 = plt_muti_log(f"logs/{env}_adap_100epoch_newdist_clearucbuf", color='c')
+    p2 = plt_muti_log(f"logs/{env}_adap_100epoch_newdist_onetrain", color='cyan')
+    p3 = plt_muti_log(f"logs/{env}_adap_100epoch_newdist", color='skyblue')
+    p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch_true", colors[3])
     plt.margins(x=0, y=0)
     plt.grid()
+    # plt.xlim(0, 5e6)
     plt.title(f"{env}")
-    plt.legend([p1, p2], ['acbyol', 'raw', 'SUAIR', 'avg', 'adap'])
-    plt.savefig(f"figures/{env}_muti_result")
+    plt.legend([p1, p2, p3, p4], ['clearbuf', 'onetrain', 'newdist', 'raw'])
+    plt.savefig(f"figures/{env}_muti_compare_1e7")
     plt.close()
 # envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
 # for env in envs:
