@@ -123,12 +123,12 @@ class BYOL_(object):
                 #     #     self.features.pop(n)
                 # else:
                 self.features.append(embedding.clone())
-                if reward > 0:
-                    self.features_pos.append(embedding.clone())
-                elif reward < 0:
-                    self.features_neg.append(embedding.clone())
-                else:
-                    self.features_norm.append(embedding.clone())
+                # if reward > 0:
+                #     self.features_pos.append(embedding.clone())
+                # elif reward < 0:
+                #     self.features_neg.append(embedding.clone())
+                # else:
+                #     self.features_norm.append(embedding.clone())
                 del obs
                 torch.cuda.empty_cache()
             # del projection
