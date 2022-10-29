@@ -27,7 +27,7 @@
 
 for env in Qbert;
 do
-    for ((i=2; i < 6;i ++))
+    for ((i=1; i < 6;i ++))
     do
         # rcmp
         # CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method rcmp --n_heads 5 --student-model-uc-th 0.011 --seed 24 > logs/$env\_rcmp_$i.log 2>& 1 &
@@ -38,7 +38,9 @@ do
         # sample effciency average_dist
         # CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 100 --dqn-dueling --seed 24 > logs/$env\_sm_100_2_same5.log 2>& 1 &
         # sample effciency adaptive_dist
-        CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 200 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_200epoch_onetrain_$i.log 2>& 1 &
+        # CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --visualize-videos --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_20epoch_nearkilled-expr_divdist_newnet_$i.log 2>& 1 &
+        # adaptive_dist with reuse
+        CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --visualize-videos --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th --seed 24 > logs/$env\_adap_acbyol_20epoch_newnet_reuse_$i.log 2>& 1 &
     done
 done
 

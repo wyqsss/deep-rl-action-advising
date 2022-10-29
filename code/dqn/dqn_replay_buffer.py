@@ -36,7 +36,8 @@ class ReplayBuffer(object):
             transition['action'],
             transition['reward'],
             transition['obs_next'],
-            transition['done']
+            transition['done'],
+            transition['killed']
         ]
 
         for content in self.extra_content:
@@ -77,7 +78,8 @@ class ReplayBuffer(object):
             'action': [],
             'reward': [],
             'obs_tp1': [],
-            'done': []
+            'done': [],
+            'killed': []
         }
 
         for content in self.extra_content:
@@ -91,9 +93,10 @@ class ReplayBuffer(object):
             sample['reward'].append(data[2])
             sample['obs_tp1'].append(np.array(data[3], copy=False))
             sample['done'].append(data[4])
+            sample['killed'].append(data[5])
 
             for j, content in enumerate(self.extra_content):
-                sample[content].append(data[5 + j])
+                sample[content].append(data[6 + j])
 
         extra_content = {}
         for content in self.extra_content:
@@ -104,10 +107,10 @@ class ReplayBuffer(object):
 
         if in_numpy_form:
             return np.array(sample['obs_t']),  np.array(sample['action']), np.array(sample['reward']), \
-                   np.array(sample['obs_tp1']), np.array(sample['done']), extra_content
+                   np.array(sample['obs_tp1']), np.array(sample['done']), np.array(sample['killed']), extra_content
         else:
             return sample['obs_t'], sample['action'], sample['reward'], \
-                   sample['obs_tp1'], sample['done'], extra_content
+                   sample['obs_tp1'], sample['done'], sample['killed'], extra_content
 
 
     def sample(self, batch_size, in_numpy_form=True):

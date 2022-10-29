@@ -91,11 +91,15 @@ class AtariPreprocessing(gym.Wrapper):
 
     def step(self, action):
         R_actual = 0.0
-
+        life_loss = False
         for t in range(self.frame_skip):
             _, reward, done, info = self.env.step(action)
             R_actual += reward
             self.game_over = done
+            
+            new_lives = self.ale.lives()
+            life_loss = done or new_lives < self.lives or life_loss
+            self.lives = new_lives
 
             if self.terminal_on_life_loss:
                 new_lives = self.ale.lives()
@@ -120,7 +124,7 @@ class AtariPreprocessing(gym.Wrapper):
         else:
             R = R_actual
 
-        return self._get_obs(), R, done, info, R_actual
+        return self._get_obs(), R, done, info, R_actual, life_loss
 
     def reset(self, **kwargs):
         # NoopReset

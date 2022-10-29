@@ -10,7 +10,7 @@ import distutils.spawn, distutils.version
 import numpy as np
 from io import StringIO
 from gym import error, logger
-
+import cv2
 def touch(path):
     open(path, 'a').close()
 
@@ -98,14 +98,15 @@ class VideoRecorder(object):
     def functional(self):
         return self.enabled and not self.broken
 
-    def capture_frame(self):
+    def capture_frame(self, advice=False):
         """Render the given `env` and add the resulting frame to the video."""
         if not self.functional: return
         logger.debug('Capturing video frame: path=%s', self.path)
 
         render_mode = 'ansi' if self.ansi_mode else 'rgb_array'
         frame = self.env.render(mode=render_mode)
-
+        if advice:
+            frame = cv2.putText(frame, 'advice', (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255))
         if frame is None:
             if self._async:
                 return

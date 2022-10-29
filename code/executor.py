@@ -808,7 +808,7 @@ class Executor:
             obs_next, reward, reward_real, done = None, None, None, None
 
             if self.config['env_type'] == ALE:
-                obs_next, reward, done, info, reward_real = self.env.step(action)
+                obs_next, reward, done, info, reward_real, killed = self.env.step(action)
 
             elif self.config['env_type'] == BOX2D:
                 obs_next, reward, done, info = self.env.step(action)
@@ -859,16 +859,18 @@ class Executor:
                 'reward': reward,
                 'obs_next': obs_next,
                 'done': done,
+                'killed': killed,
                 'source': action_source,
                 'state_id': state_id,
                 'state_id_next': state_id_next,
                 'expert_action': teacher_action,
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
-
+            if killed:
+                print(f"killed is {killed}, done is {done}")
             if render:
                 if self.config['env_type'] == ALE:
-                    self.video_recorder.capture_frame()
+                    self.video_recorder.capture_frame(advice_collection_occurred)
                 elif self.config['env_type'] == BOX2D:
                     self.video_recorder.capture_frame()
                 elif self.config['env_type'] == GRIDWORLD:
@@ -919,10 +921,11 @@ class Executor:
             if self.config['dqn_twin'] and feed_dict is not None:
                 loss_twin = self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
 
-            if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() == self.config['dqn_rm_init'] \
+            if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % self.config['cons_learning_inter'] == 0 and self.action_advising_budget > 0:
                 print("begin to train constractive model")
                 self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch']) * self.config['gamma']
+                self.student_model_uc_values_buffer.clear()
 
 
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
@@ -1093,8 +1096,10 @@ class Executor:
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
 
-        render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
-
+        # render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
+        render = self.action_advising_budget > 0 and self.config['visualize_videos']
+        if render:
+            print("render this eposide")
         if render:
             if self.config['env_type'] == ALE:
                 self.video_recorder = gym_video_recorder. \
@@ -1273,7 +1278,7 @@ class Executor:
                 eval_obs_next, eval_reward, eval_done = None, None, None
 
                 if self.config['env_type'] == ALE:
-                    eval_obs_next, eval_reward, eval_done, eval_info, eval_real_reward \
+                    eval_obs_next, eval_reward, eval_done, eval_info, eval_real_reward, _ \
                         = self.eval_env.step(eval_action)
 
                 elif self.config['env_type'] == BOX2D:
