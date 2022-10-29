@@ -111,9 +111,12 @@ def plt_log(logfile, color=None):
         if items[0] == "Evaluation" and items[1] == '@':
             epoch.append(int(float(items[2])))
             reward.append(float(items[-1]))
-    plt.plot(epoch, gaussian_filter1d(reward, sigma=3))
+    p1, = plt.plot(epoch, gaussian_filter1d(reward, sigma=2), color=color)
 
     print(f"epoch : {epoch[-1]}, reward : {reward[-1]}")
+    return p1
+
+colors = ['g', 'dodgerblue', 'orange', 'r']
 
 colors = ['g', 'dodgerblue', 'orange', 'r']
 
@@ -163,6 +166,7 @@ for env in envs:
     plt.margins(x=0, y=0)
     plt.xlim(0, 5e6)
     plt.grid()
+    # plt.xlim(0, 5e6)
     plt.title(f"{env}")
     plt.legend([p0, p5], ['SUAIR', 'newnet'])
     plt.savefig(f"figures/{env}_muti_comparenet_5e6")

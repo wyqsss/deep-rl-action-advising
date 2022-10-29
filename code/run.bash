@@ -25,7 +25,7 @@
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --dqn-dueling --use-gpu > logs/Freeway.log 2>& 1 &
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --use-gpu --dqn-twin --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method student_model_uc --use-proportional-student-model-uc-th > logs/Freeway_SUA.log 2>& 1 &
 
-for env in Qbert;
+for env in Seaquest;
 do
     for ((i=1; i < 6;i ++))
     do

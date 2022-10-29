@@ -1,3 +1,5 @@
+from cmath import cos
+from turtle import distance
 from PIL import Image
 import torch
 from torchvision import models
@@ -51,6 +53,9 @@ class BYOL_(object):
         self.features = []
         self.features_nearkilled = []
         
+        self.features_neg = []
+        self.features_pos = []
+        self.features_norm = []
         self.toPIL = transforms.ToPILImage()
         self.count = 0
         self.m_featur = None
@@ -69,6 +74,22 @@ class BYOL_(object):
         # cos_killed = torch.mean(torch.mm(self.features_nearkilled, embedding.reshape(-1, 1))).numpy()
         distance = torch.mean(torch.mm(self.features, embedding.reshape(-1, 1)))
         # print(f"distance shape is {distance}")
+
+        # # new method 离reward近， 离norm远
+        # cos_neg, cos_pos = 0, 0
+        # if len(self.features_pos) > 0:
+        #     cos_pos = torch.mean(torch.mm(self.features_pos, embedding.reshape(-1, 1))).numpy()
+        # if len(self.features_neg) > 0:
+        #     cos_neg = torch.mean(torch.mm(self.features_neg, embedding.reshape(-1, 1))).numpy()
+
+        # cos_norm = torch.mean(torch.mm(self.features_norm, embedding.reshape(-1, 1))).numpy()
+
+        # distance = (cos_pos + cos_neg) / cos_norm  # 这个值越大越好
+        # print(f"distance is {distance}")
+        # return  distance
+        # distance = torch.mm(self.features, embedding.reshape(-1, 1))
+        # print(f"distance shape is {distance}")
+        # distance = torch.mean(distance).numpy() # 已经求均值了
         # avg_dist = 0
         # for fea in self.features:
         #     dist = torch.sqrt(torch.sum(torch.square(fea - self.m_feature)))
@@ -102,6 +123,12 @@ class BYOL_(object):
                 #     #     self.features.pop(n)
                 # else:
                 self.features.append(embedding.clone())
+                if reward > 0:
+                    self.features_pos.append(embedding.clone())
+                elif reward < 0:
+                    self.features_neg.append(embedding.clone())
+                else:
+                    self.features_norm.append(embedding.clone())
                 del obs
                 torch.cuda.empty_cache()
             # del projection
@@ -111,11 +138,11 @@ class BYOL_(object):
             self.features_nearkilled = torch.stack(self.features_nearkilled)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
-        dist = []
-        for i in range(len(self.features)):
-            sample = self.features[i]
-            cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
-            pol_average_distance += (1 - cos_val)
+        # dist = []
+        # for i in range(len(self.features)):
+        #     sample = self.features[i]
+        #     cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+        #     pol_average_distance += (1 - cos_val)
         #     dist.append(1-cos_val)
             
         # idxs = np.where(dist <= np.percentile(dist, 99.5))   # 把离群点的特征也剔除
@@ -125,7 +152,7 @@ class BYOL_(object):
         #     cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
         #     pol_average_distance += (1 - cos_val)
         
-        pol_average_distance = pol_average_distance / len(self.features)
+        # pol_average_distance = pol_average_distance / len(self.features)
         # new_dist = [ele for ele in dist if ele < np.percentile(dist, 99)]
         # pol_average_distance = np.mean(new_dist)
         # vis_feas = self.features.numpy()
