@@ -152,7 +152,7 @@ class ReplayBuffer(object):
         idxes = random.sample(ad_indexes, int(batch_size*beta))
         noad_idx = random.sample(noad_indexes, batch_size - int(batch_size*beta))
         idxes.extend(noad_idx)
-        idxes = random.shuffle(idxes)
+        random.shuffle(idxes)
         return self._encode_sample(idxes, in_numpy_form)
 
 class PrioritizedReplayBuffer(ReplayBuffer):
