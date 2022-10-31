@@ -25,10 +25,20 @@ class ReplayBuffer(object):
 
         self.extra_content = extra_content
 
+        self.adviced = []
+
     def __len__(self):
         return len(self._storage)
 
-    def add(self, transition):  # obs_t, action, reward, obs_tp1, done, *args, **kwargs)
+    def add(self, transition, adviced=False):  # obs_t, action, reward, obs_tp1, done, *args, **kwargs)
+        if len(self.adviced) >= self._maxsize:
+            self.adviced.pop(0)
+        if adviced:
+            self.adviced.append(1)
+        else:
+            self.adviced.append(0)
+
+        
         old_data = None
 
         data = [
@@ -134,6 +144,14 @@ class ReplayBuffer(object):
             the end of an episode and 0 otherwise.
         """
         idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+        return self._encode_sample(idxes, in_numpy_form)
+
+    def sample_ad(self, batch_size, beta=0.5, in_numpy_form=True):
+        ad_indexes = [i for i, x in enumerate(self.adviced) if x == 1]
+        noad_indexes = [i for i, x in enumerate(self.adviced) if x == 0]
+        idxes = random.sample(ad_indexes, int(batch_size*beta))
+        noad_idx = random.sample(noad_indexes, batch_size - int(batch_size*beta))
+        idxes = random.shuffle(idxes.extend(noad_idx))
         return self._encode_sample(idxes, in_numpy_form)
 
 class PrioritizedReplayBuffer(ReplayBuffer):

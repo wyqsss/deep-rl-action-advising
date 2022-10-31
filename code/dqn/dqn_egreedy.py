@@ -246,8 +246,11 @@ class EpsilonGreedyDQN(DQN):
         self.training_steps_since_target_update += 1
 
         if self.config['dqn_rm_type'] == 'uniform':
-            minibatch_ = self.replay_memory.sample(self.config['dqn_batch_size'],
-                                                   in_numpy_form=True)
+            if stats.n_env_steps > 50000 and stats.n_env_steps < 200000:
+                minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'])
+            else:
+                minibatch_ = self.replay_memory.sample(self.config['dqn_batch_size'],
+                                                    in_numpy_form=True)
         elif self.config['dqn_rm_type'] == 'per':
             minibatch_ = self.replay_memory.sample(self.config['dqn_batch_size'],
                                                    beta=self.per_beta,
