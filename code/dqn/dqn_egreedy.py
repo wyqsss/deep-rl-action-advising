@@ -188,11 +188,11 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def feedback_observe(self, transition):
+    def feedback_observe(self, transition, adviced=False):
         if transition['done']:
             self.n_episode += 1
 
-        old_transition = self.replay_memory.add(transition)
+        old_transition = self.replay_memory.add(transition, adviced)
         return old_transition
 
     # ==================================================================================================================

@@ -897,7 +897,7 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
             # Feedback
-            self.student_agent.feedback_observe(transition)
+            self.student_agent.feedback_observe(transition, advice_collection_occurred)
 
             # Update collection statistics (for Gridworld)
             if self.config['env_type'] == GRIDWORLD:
