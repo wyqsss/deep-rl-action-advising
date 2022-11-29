@@ -224,7 +224,7 @@ class BehaviouralCloning(object):
     def get_action_logits(self, obs):
         if self.config['env_type'] == ALE:
             obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
-        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)]}
+        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)], self.dropout_rate_ph: 0.0}
         return self.session.run(self.tf_vars['action_logits'], feed_dict=feed_dict)
 
     # ==================================================================================================================

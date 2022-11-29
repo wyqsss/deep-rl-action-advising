@@ -30,7 +30,7 @@ from behavioural_cloning.bc_base import BehaviouralCloning
 from dqn.dqn_twin import DQNTwin
 
 from constants.general import *
-checkpoints_dir = "/home/wyq/uncertainty/deep-rl-action-advising/Runs/Checkpoints"
+checkpoints_dir = "/home/wyq/deep-rl-action-advising/Runs/Checkpoints"
 
 def eval(config, eval_env):
     env_info = ENV_INFO[config['env_key']]
@@ -83,7 +83,7 @@ def eval(config, eval_env):
                                                   config['dqn_eps_final'],
                                                   config['dqn_eps_steps'], stats=None,
                                                   demonstrations_datasets=None, n_heads=config['n_heads'])
-    student_agent.restore(checkpoints_dir, config['load_student'], 5e6)
+    student_agent.restore(checkpoints_dir, config['load_student'],14e5)
     eval_total_reward_real = 0.0
     eval_total_reward = 0.0
     eval_duration = 0
@@ -137,7 +137,7 @@ def eval(config, eval_env):
             eval_obs_next, eval_reward, eval_done = None, None, None
 
             if config['env_type'] == ALE:
-                eval_obs_next, eval_reward, eval_done, eval_info, eval_real_reward \
+                eval_obs_next, eval_reward, eval_done, eval_info, eval_real_reward, _ \
                     = eval_env.step(eval_action)
 
             elif config['env_type'] == BOX2D:
@@ -170,7 +170,7 @@ def eval(config, eval_env):
             eval_done = eval_done or eval_episode_duration >= max_timesteps
 
             if eval_done:
-
+                print(f"this episode reward reward {eval_episode_reward}, real reward is {eval_episode_reward_real}")
                 eval_total_reward += eval_episode_reward
                 eval_total_reward_real += eval_episode_reward_real
                 break

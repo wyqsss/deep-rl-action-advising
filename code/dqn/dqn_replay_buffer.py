@@ -24,19 +24,53 @@ class ReplayBuffer(object):
         self.n_preserved = 0
 
         self.extra_content = extra_content
-
-        self.adviced = []
+        self.life_start_idx = 0
+        self.life_done_idx = 0
+        # self.adviced = []
+        self.low_mask = []
 
     def __len__(self):
         return len(self._storage)
 
-    def add(self, transition, adviced=False):  # obs_t, action, reward, obs_tp1, done, *args, **kwargs)
-        if len(self.adviced) >= self._maxsize:
-            self.adviced.pop(0)
-        if adviced:
-            self.adviced.append(1)
+    def add(self, transition, low_score='norm', print_ratio=False):  # obs_t, action, reward, obs_tp1, done, *args, **kwargs)
+        # if len(self.adviced) >= self._maxsize:
+        #     self.adviced.pop(0)
+        # if adviced:
+        #     self.adviced.append(1)
+        # else:
+        #     self.adviced.append(0)
+
+        if len(self.low_mask) >= self._maxsize:
+            self.low_mask.pop(0)
+            self.life_start_idx -= 1
+            if low_score == 'low':
+                self.low_mask.append(1)
+                # mask_idx = (self.life_done_idx - self.life_start_idx) * 0.6 + self.life_start_idx
+                for i in range(self.life_start_idx, self.life_done_idx):
+                    self.low_mask[i] = 1
+                self.life_start_idx = self.life_done_idx
+            elif low_score == 'high':
+                self.low_mask.append(0)
+                self.life_start_idx = self.life_done_idx
+            else:
+                self.low_mask.append(0)
         else:
-            self.adviced.append(0)
+            if low_score == 'low':
+                self.low_mask.append(1)
+                # mask_idx = (self.life_done_idx - self.life_start_idx) * 0.6 + self.life_start_idx
+                for i in range(self.life_start_idx, self.life_done_idx):
+                    self.low_mask[i] = 1
+                self.life_start_idx = self.life_done_idx
+            elif low_score == 'high':
+                self.low_mask.append(0)
+                self.life_start_idx = self.life_done_idx
+            else:
+                self.low_mask.append(0)
+            self.life_done_idx += 1
+        if print_ratio:
+            late_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
+            ahead_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
+            print(f"low score samples i {len(late_indexes)} , hight score sample is {len(ahead_indexes)}")
 
         
         old_data = None
@@ -147,10 +181,10 @@ class ReplayBuffer(object):
         return self._encode_sample(idxes, in_numpy_form)
 
     def sample_ad(self, batch_size, beta=0.5, in_numpy_form=True):
-        ad_indexes = [i for i, x in enumerate(self.adviced) if x == 1]
-        noad_indexes = [i for i, x in enumerate(self.adviced) if x == 0]
-        idxes = random.sample(ad_indexes, int(batch_size*beta))
-        noad_idx = random.sample(noad_indexes, batch_size - int(batch_size*beta))
+        late_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
+        ahead_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
+        idxes = random.sample(late_indexes, int(batch_size*beta))
+        noad_idx = random.sample(ahead_indexes, batch_size - int(batch_size*beta))
         idxes.extend(noad_idx)
         random.shuffle(idxes)
         return self._encode_sample(idxes, in_numpy_form)

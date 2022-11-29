@@ -188,11 +188,11 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def feedback_observe(self, transition, adviced=False):
+    def feedback_observe(self, transition, low_score='norm', print_ratio=False):
         if transition['done']:
             self.n_episode += 1
 
-        old_transition = self.replay_memory.add(transition, adviced)
+        old_transition = self.replay_memory.add(transition, low_score, print_ratio)
         return old_transition
 
     # ==================================================================================================================
@@ -246,8 +246,23 @@ class EpsilonGreedyDQN(DQN):
         self.training_steps_since_target_update += 1
 
         if self.config['dqn_rm_type'] == 'uniform':
-            if stats.n_env_steps > 50000 and stats.n_env_steps < 200000:
-                minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'])
+            # if stats.n_env_steps < 200000:
+            #     minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 1)
+            # elif stats.n_env_steps < 500000:
+            #     minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 0.5)
+            # elif stats.n_env_steps < 1000000:
+                # minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 0.2)
+            # else:
+            if stats.n_env_steps < 1e6: # for debug
+                minibatch_ = self.replay_memory.sample(self.config['dqn_batch_size'],
+                                                    in_numpy_form=True)
+            elif stats.n_env_steps < 2e6:
+                print("get ad sample for debug")
+                minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 0.9)
+            elif stats.n_env_steps < 3e6:
+                minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 0.7)
+            elif stats.n_env_steps < 5e6:
+                minibatch_ = self.replay_memory.sample_ad(self.config['dqn_batch_size'], 0.5)
             else:
                 minibatch_ = self.replay_memory.sample(self.config['dqn_batch_size'],
                                                     in_numpy_form=True)
@@ -498,10 +513,11 @@ class EpsilonGreedyDQN(DQN):
     # ==================================================================================================================
 
     def get_action(self, obs):
+        q_values = self.get_q_values(obs)
         if random.random() < self.eps:
-            return super().random_action(), True
+            return super().random_action(), True, q_values
         else:
-            return self.get_greedy_action(obs), False
+            return np.argmax(q_values), False, q_values
 
     # ==================================================================================================================
 

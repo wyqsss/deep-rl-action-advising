@@ -1,5 +1,4 @@
 import os
-from turtle import distance
 import psutil
 import pathlib
 import random
@@ -123,6 +122,9 @@ class Executor:
         self.byol = None
         
         self.pol_average_distance = None
+
+        self.zeta = 1
+        self.zeta_greedy = 0.5
 
     # ==================================================================================================================
 
@@ -484,7 +486,7 @@ class Executor:
                 action = teacher_action
                 action_is_explorative = False
             else:
-                self_action, action_is_explorative = self.student_agent.get_action(obs)
+                self_action, action_is_explorative, q_values = self.student_agent.get_action(obs)
             # print(f"obs shape is {obs.shape}")
             if action_is_explorative:
                 self.stats.exploration_steps_taken += 1
@@ -666,7 +668,8 @@ class Executor:
                         self.samples_since_imitation >= self.config['advice_imitation_period_samples']:
 
                     print(self.steps_since_imitation, self.samples_since_imitation)
-
+                    # self.config['advice_imitation_training_iterations_init'] = 2 # for debug
+                    # self.config['advice_imitation_training_iterations_periodic'] = 2
                     if not self.initial_imitation_is_performed:
                         train_behavioural_cloner(self.bc_model,
                                                  self.config['advice_imitation_training_iterations_init'])
@@ -733,7 +736,12 @@ class Executor:
                                     reuse_advice = True
 
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
-                            if bc_uncertainty < self.config['teacher_model_uc_th']:
+                            # distance = self.byol.cal(obs)
+                            # sorted_values = sorted(self.student_model_uc_values_buffer)
+                            # percentile_th = np.percentile(sorted_values,
+                            #                             self.config['proportional_student_model_uc_th_percentile'])
+                            # self.student_model_uc_values_buffer.append(distance)
+                            if bc_uncertainty < self.config['teacher_model_uc_th']: # and distance > percentile_th:
                                 reuse_advice = True
 
             if reuse_advice:
@@ -741,9 +749,19 @@ class Executor:
                     action = self.advice_lookup_table[state_id]
                 else:
                     if reuse_model_action is None:
-                        reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
-
-                    action = reuse_model_action
+                        # if self.stats.n_episodes < 2000 or self.zeta < 0:
+                        #     reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                        # else:
+                        #     # print(f"qvalues is {q_values}")
+                        #     # q_prob = self.softmax(q_values)
+                        #     # print(q_prob - self.zeta * np.random.dirichlet(np.ones(self.config['env_n_actions']), size=1))
+                        #     # if random.random() < self.zeta_greedy:
+                        #     #     reuse_model_action = self.student_agent.random_action()
+                        #     # else:
+                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
+                        if self.stats.n_env_steps < 1e6:
+                            reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                            action = reuse_model_action
 
                 action_source = 2
 
@@ -852,7 +870,31 @@ class Executor:
 
                 generate_grid_visualisation(self.env, self.config, self.save_vis_images_path,
                                             self.stats.n_env_steps,  self.visualisation_values)
-
+            # if self.stats.n_episodes < 2000:
+            #     print(f"distance is {distance}")
+            #     if advice_collection_occurred:
+            #         if not distance:
+            #             reward += 0.5
+            #         elif distance * 10 > 0.5:
+            #             reward += 0.5
+            #         elif distance * 10 < 0.1:
+            #             reward += 0.1
+            #         else:
+            #             reward += distance * 10
+            #     elif reuse_advice:
+            #         intric_reward = 0
+            #         if distance * 10 > 0.5:
+            #             intric_reward = 0.5
+            #         elif distance * 10 < 0.1:
+            #             intric_reward = 0.1
+            #         else:
+            #             intric_reward = distance * 10
+            #         reward += (intric_reward - (intric_reward/2000)*self.stats.n_episodes) 
+            if self.stats.n_env_steps < 1e6:
+                if advice_collection_occurred:
+                    reward += 0.5
+                elif reuse_advice:
+                    reward += (0.5 - (0.5 / 1e6) * self.stats.n_env_steps)    
             transition = {
                 'obs': obs,
                 'action': action,
@@ -866,8 +908,8 @@ class Executor:
                 'expert_action': teacher_action,
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
-            if killed:
-                print(f"killed is {killed}, done is {done}")
+            # if killed:
+            #     print(f"killed is {killed}, done is {done}")
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame(advice_collection_occurred)
@@ -897,7 +939,13 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
             # Feedback
-            self.student_agent.feedback_observe(transition, advice_collection_occurred)
+            if done:
+                if self.episode_reward_real < 2000:
+                    self.student_agent.feedback_observe(transition, 'low', True if self.stats.n_env_steps % 2e5 == 0 else False)
+                else:
+                    self.student_agent.feedback_observe(transition, 'high', True if self.stats.n_env_steps % 2e5 == 0 else False)
+            else:
+                self.student_agent.feedback_observe(transition, 'norm', True if self.stats.n_env_steps % 2e5 == 0 else False)
 
             # Update collection statistics (for Gridworld)
             if self.config['env_type'] == GRIDWORLD:
@@ -953,6 +1001,13 @@ class Executor:
             obs = obs_next
             state_id = state_id_next
             done = done or self.episode_duration >= self.env_info['max_timesteps']
+
+            # if self.stats.n_episodes == 2000: # reset 全连接层的网络参数
+            #     for variable in tf.compat.v1.trainable_variables():
+            #         if self.config['student_id'] in variable.name and 'DENSE' in variable.name:
+            #             variable.initializer.run(session=self.session)
+            #             print(variable.name)
+            
 
             if done:
                 self.stats.n_episodes += 1
@@ -1095,6 +1150,11 @@ class Executor:
 
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
+
+        if self.stats.n_episodes >= 2000:
+            self.zeta -= 1/ 2000
+        # if self.stats.n_episodes >=2000 and self.zeta > 0.08:
+        #     self.zeta_greedy -= 1/4000
 
         # render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
         render = self.action_advising_budget > 0 and self.config['visualize_videos']
@@ -1464,6 +1524,14 @@ class Executor:
                 return np.argmax(self.bc_model.get_action_probs(obs))
 
         return None
+    
+    def softmax(self, a):
+        c = np.max(a)
+        exp_a = np.exp(a - c) # 溢出对策
+        sum_exp_a = np.sum(exp_a)
+        y = exp_a / sum_exp_a
+        return y
+
 
 # ======================================================================================================================
 
