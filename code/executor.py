@@ -126,6 +126,10 @@ class Executor:
         self.zeta = 1
         self.zeta_greedy = 0.5
 
+        self.fea_trained = False
+
+        self.student_agent_sub = None
+        self.tau = 0.99
     # ==================================================================================================================
 
     def render(self, env):
@@ -403,10 +407,43 @@ class Executor:
         print('Number of parameters: {}'.format(total_parameters))
 
         # --------------------------------------------------------------------------------------------------------------
+        # build copy sub model ops, sub 负责交互，另一个负责训练
+        self.student_agent_sub = EpsilonGreedyDQN(self.config['student_id'] + '_sub', self.config, self.session,
+                                self.config['dqn_eps_start'],
+                                self.config['dqn_eps_final'],
+                                self.config['dqn_eps_steps'], self.stats,
+                                demonstrations_datasets=demonstrations_datasets, n_heads=self.config['n_heads'])
+
+        trainable_vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '/' + 'ONLINE')
+        trainable_vars_by_name = {var.name[len(self.student_agent.id + '/' + 'ONLINE'):]: var for var in trainable_vars}
+
+        trainable_vars_sub = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '_sub' + '/' + 'ONLINE')
+        trainable_vars_sub_by_name = {var.name[len(self.student_agent.id + '_sub' + '/' + 'ONLINE'):]: var for var in trainable_vars_sub}
+
+        copy_sub_online_ops = [target_var.assign(trainable_vars_sub_by_name[var_name] * self.tau + trainable_vars_by_name[var_name] * (1-self.tau)) # 动量编码θ' = tau*θ' + (1-tau)*θ
+                    for var_name, target_var in trainable_vars_sub_by_name.items()]
+        copy_sub_weigths = tf.compat.v1.group(*copy_sub_online_ops)   # online net work
+
+        copy_sub_online_ops_init = [target_var.assign(trainable_vars_by_name[var_name]) #初始化
+                    for var_name, target_var in trainable_vars_sub_by_name.items()]
+        copy_sub_weigths_init = tf.compat.v1.group(*copy_sub_online_ops_init)   # online net work
+
+        # trainable_vars_tar = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '/' + 'TARGET')
+        # trainable_vars_tar_by_name = {var.name[len(self.student_agent.id + '/' + 'TARGET'):]: var for var in trainable_vars_tar}
+
+        # trainable_vars_tar_sub = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '_sub' + '/' + 'TARGET')
+        # trainable_vars_tar_sub_by_name = {var.name[len(self.student_agent.id + '_sub' + '/' + 'TARGET'):]: var for var in trainable_vars_tar_sub}
+
+        # copy_sub_target_ops = [target_var.assign(trainable_vars_tar_by_name[var_name])
+        #             for var_name, target_var in trainable_vars_tar_sub_by_name.items()]
+        # copy_sub_tar_weigths = tf.compat.v1.group(*copy_sub_target_ops)
+
+        # print("set copy ops----------------------------------------------------")
 
         self.saver = tf.compat.v1.train.Saver(max_to_keep=None)
         self.session.run(tf.compat.v1.global_variables_initializer())
 
+        self.session.run(copy_sub_weigths_init) # 初始化保持一致
         # --------------------------------------------------------------------------------------------------------------
         # Restore the teacher model from a saved checkpoint
         if self.config['load_teacher']:
@@ -486,7 +523,7 @@ class Executor:
                 action = teacher_action
                 action_is_explorative = False
             else:
-                self_action, action_is_explorative, q_values = self.student_agent.get_action(obs)
+                self_action, action_is_explorative, q_values = self.student_agent_sub.get_action(obs)
             # print(f"obs shape is {obs.shape}")
             if action_is_explorative:
                 self.stats.exploration_steps_taken += 1
@@ -501,7 +538,7 @@ class Executor:
 
             if action is None and \
                     self.config['advice_collection_method'] != 'none' and \
-                    (self.action_advising_budget > 0 or self.config['advice_collection_method'] == 'dual_uc'):
+                    (self.action_advising_budget > 0 or self.config['advice_collection_method'] == 'dual_uc'): #and self.stats.n_env_steps > 1e6:
 
                 if self.config['advice_collection_method'] == 'early':
                     advice_collection_occurred = True
@@ -759,7 +796,7 @@ class Executor:
                         #     #     reuse_model_action = self.student_agent.random_action()
                         #     # else:
                         #     reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
-                        if self.stats.n_env_steps < 1e6:
+                        # if self.stats.n_env_steps < 1e6:
                             reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
                             action = reuse_model_action
 
@@ -963,6 +1000,9 @@ class Executor:
 
             td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
             feed_dict, is_batch = self.student_agent.feedback_learn(self.stats)
+            if is_batch is not None:
+                # print("ema function") # for debugs
+                self.session.run(copy_sub_weigths) # 进行ema 操作
 
             # Train the twin DQN if the original DQN has performed a learning step
             loss_twin = 0.0
@@ -971,9 +1011,11 @@ class Executor:
 
             if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % self.config['cons_learning_inter'] == 0 and self.action_advising_budget > 0:
+            # if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() == 1e6 and not self.fea_trained:
                 print("begin to train constractive model")
                 self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch']) * self.config['gamma']
                 self.student_model_uc_values_buffer.clear()
+                # self.fea_trained = True
 
 
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
@@ -1062,7 +1104,7 @@ class Executor:
             if self.stats.n_env_steps % self.stats.n_steps_per_update == 0:
                 self.stats.steps_reward_auc += np.trapz([self.stats.steps_reward_last, self.steps_reward])
                 self.stats.steps_reward_last = self.steps_reward
-                self.stats.epsilon = self.student_agent.eps if self.student_agent.type == 'egreedy' else 0
+                self.stats.epsilon = self.student_agent_sub.eps if self.student_agent_sub.type == 'egreedy' else 0
 
                 self.stats.steps_reward_real_auc += np.trapz([self.stats.steps_reward_real_last, self.steps_reward_real])
                 self.stats.steps_reward_real_last = self.steps_reward_real

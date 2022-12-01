@@ -53,9 +53,9 @@ class BYOL_(object):
         self.features = []
         self.features_nearkilled = []
         
-        self.features_neg = []
-        self.features_pos = []
-        self.features_norm = []
+        # self.features_neg = []
+        # self.features_pos = []
+        # self.features_norm = []
         self.toPIL = transforms.ToPILImage()
         self.count = 0
         self.m_featur = None
@@ -72,7 +72,9 @@ class BYOL_(object):
         # print(f"pool feature is {self.features[0]}")
         # print(f"embedding is {embedding}")
         # cos_killed = torch.mean(torch.mm(self.features_nearkilled, embedding.reshape(-1, 1))).numpy()
-        distance = torch.mean(torch.mm(self.features, embedding.reshape(-1, 1)))
+        distance = torch.mm(self.features, embedding.reshape(-1, 1))/ self.count # 最后除以N样本池中的样本个数
+        self.features += embedding
+        self.count += 1
         # print(f"distance shape is {distance}")
 
         # # new method 离reward近， 离norm远
@@ -95,17 +97,17 @@ class BYOL_(object):
         #     dist = torch.sqrt(torch.sum(torch.square(fea - self.m_feature)))
         #     avg_dist += dist
         # print(f"distance is {(1 - distance)/ (1 - cos_killed)}")
-        return  (1 - distance)
+        return  (1 - distance[0][0])
         
 
     def cal_all(self, replaybuffer, epochs=0):
         self.learner.eval()
         self.features = []
         self.features_nearkilled = []
-        for idx in range(replaybuffer.__len__()):
+        for idx in range(0, replaybuffer.__len__(), 10):
             batch = replaybuffer._encode_sample([idx], True)
             obs = batch[0]
-            killed = batch[5]
+            # killed = batch[5]
             # obs = np.expand_dims(np.mean(obs, axis=1), axis=1) # .repeat(3, axis=1)
             # print(f"obs shape is {obs.shape}")
             obs = torch.tensor(obs, dtype=torch.float32).cuda()
@@ -133,9 +135,10 @@ class BYOL_(object):
                 torch.cuda.empty_cache()
             # del projection
             # del embedding
-        self.features = torch.stack(self.features)
-        if len(self.features_nearkilled) > 0:
-            self.features_nearkilled = torch.stack(self.features_nearkilled)
+        self.count = len(self.features)
+        self.features = torch.sum(torch.stack(self.features), dim=0).unsqueeze(0)
+        # if len(self.features_nearkilled) > 0:
+        #     self.features_nearkilled = torch.stack(self.features_nearkilled)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
         pol_average_distance = 0
         # dist = []
@@ -185,9 +188,8 @@ class BYOL_(object):
         #       data=tsne_df)
 
         # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
-        print(f"killed features is {len(self.features_nearkilled)}")
+        # print(f"killed features is {len(self.features_nearkilled)}")
         print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
-        self.count += 1
         return pol_average_distance
 
 
@@ -208,7 +210,8 @@ class BYOL_(object):
         #     pic.save(f"test_figures/Qbert_grey_batch_{i}_3.jpg") 
 
         buffer_dataset = BufferDataset(replaybuffer)
-        buffer_loader = DataLoader(buffer_dataset, batch_size=self.batch_size, shuffle=True)
+        train_dataset, _  = torch.utils.data.random_split(buffer_dataset, [100000, len(buffer_dataset) - 100000])
+        buffer_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
         ep = 0
         # for _ in range(max(epochs // 2**(self.count), 10)):
         for _ in range(epochs):

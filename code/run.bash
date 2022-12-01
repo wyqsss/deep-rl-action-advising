@@ -27,7 +27,7 @@
 
 for env in Qbert;
 do
-    for ((i=0; i < 1;i ++))
+    for ((i=1; i < 6;i ++))
     do
         # rcmp
         # CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method rcmp --n_heads 5 --student-model-uc-th 0.011 --seed 24 > logs/$env\_rcmp_$i.log 2>& 1 &
@@ -40,7 +40,7 @@ do
         # sample effciency adaptive_dist
         # CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_20epoch_eewardshape_0.1_newsample_$i.log 2>& 1 &
         # adaptive_dist with reuse
-        CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_adap_reuse_RS_zetaprob_testlowsample_ratio_$i.log 2>& 1 &
+        CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_adap_reuse_RS_ema_$i.log 2>& 1 &
     done
 done
 
