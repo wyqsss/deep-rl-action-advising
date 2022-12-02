@@ -124,6 +124,12 @@ class Executor:
         
         self.pol_average_distance = None
 
+        # self.zeta = 1
+
+        # self.student_agent_sub = None
+
+        # self.copy_sub = False
+
     # ==================================================================================================================
 
     def render(self, env):
@@ -401,6 +407,38 @@ class Executor:
         print('Number of parameters: {}'.format(total_parameters))
 
         # --------------------------------------------------------------------------------------------------------------
+        # build copy sub model ops
+        # self.student_agent_sub = EpsilonGreedyDQN(self.config['student_id'] + '_sub', self.config, self.session,
+        #                         self.config['dqn_eps_start'],
+        #                         self.config['dqn_eps_final'],
+        #                         self.config['dqn_eps_steps'], self.stats,
+        #                         demonstrations_datasets=demonstrations_datasets, n_heads=self.config['n_heads'])
+
+        # trainable_vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '/' + 'ONLINE')
+        # trainable_vars_by_name = {var.name[len(self.student_agent.id + '/' + 'ONLINE'):]: var for var in trainable_vars}
+
+        # trainable_vars_sub = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '_sub' + '/' + 'ONLINE')
+        # trainable_vars_sub_by_name = {var.name[len(self.student_agent.id + '_sub' + '/' + 'ONLINE'):]: var for var in trainable_vars_sub}
+
+        # copy_sub_online_ops = [target_var.assign(trainable_vars_by_name[var_name])
+        #             for var_name, target_var in trainable_vars_sub_by_name.items()]
+        # copy_sub_weigths = tf.compat.v1.group(*copy_sub_online_ops)   # online net work
+
+        # trainable_vars_tar = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '/' + 'TARGET')
+        # trainable_vars_tar_by_name = {var.name[len(self.student_agent.id + '/' + 'TARGET'):]: var for var in trainable_vars_tar}
+
+        # trainable_vars_tar_sub = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.student_agent.id + '_sub' + '/' + 'TARGET')
+        # trainable_vars_tar_sub_by_name = {var.name[len(self.student_agent.id + '_sub' + '/' + 'TARGET'):]: var for var in trainable_vars_tar_sub}
+
+        # copy_sub_target_ops = [target_var.assign(trainable_vars_tar_by_name[var_name])
+        #             for var_name, target_var in trainable_vars_tar_sub_by_name.items()]
+        # copy_sub_tar_weigths = tf.compat.v1.group(*copy_sub_target_ops)
+
+        # print("set copy ops----------------------------------------------------")
+
+
+
+        # --------------------------------------------------------------------------------------------------------------
 
         self.saver = tf.compat.v1.train.Saver(max_to_keep=None)
         self.session.run(tf.compat.v1.global_variables_initializer())
@@ -467,6 +505,15 @@ class Executor:
             #         import sys
             #         sys.exit()
 
+            # if self.stats.n_episodes == 1000 and not self.copy_sub:
+            #     self.session.run(copy_sub_tar_weigths)
+            #     self.copy_sub = True
+            #     for variable in tf.compat.v1.trainable_variables():
+            #         if variable.name.split('/')[0] == self.config['student_id'] and 'DENSE' in variable.name:
+            #             variable.initializer.run(session=self.session)
+            #             print(variable.name)
+            #     print("--------------------------------------------------ok copy target")
+
             # ----------------------------------------------------------------------------------------------------------
 
             self_action = None
@@ -484,7 +531,7 @@ class Executor:
                 action = teacher_action
                 action_is_explorative = False
             else:
-                self_action, action_is_explorative = self.student_agent.get_action(obs)
+                self_action, action_is_explorative, q_values = self.student_agent.get_action(obs)
             # print(f"obs shape is {obs.shape}")
             if action_is_explorative:
                 self.stats.exploration_steps_taken += 1
@@ -496,6 +543,7 @@ class Executor:
 
             reuse_advice = False
             advice_collection_occurred = False
+            distance = None
 
             if action is None and \
                     self.config['advice_collection_method'] != 'none' and \
@@ -666,7 +714,8 @@ class Executor:
                         self.samples_since_imitation >= self.config['advice_imitation_period_samples']:
 
                     print(self.steps_since_imitation, self.samples_since_imitation)
-
+                    # self.config['advice_imitation_training_iterations_init'] = 2 # for debug
+                    # self.config['advice_imitation_training_iterations_periodic'] = 2
                     if not self.initial_imitation_is_performed:
                         train_behavioural_cloner(self.bc_model,
                                                  self.config['advice_imitation_training_iterations_init'])
@@ -733,7 +782,10 @@ class Executor:
                                     reuse_advice = True
 
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
-                            if bc_uncertainty < self.config['teacher_model_uc_th']:
+                            # reuse_uncertainty = bc_uncertainty - self.config['teacher_model_uc_th']
+                            if bc_uncertainty < self.config['teacher_model_uc_th']: # or (self.zeta < 1 and self.zeta > 0):
+                                if not distance:
+                                    distance = self.byol.cal(obs)
                                 reuse_advice = True
 
             if reuse_advice:
@@ -741,9 +793,12 @@ class Executor:
                     action = self.advice_lookup_table[state_id]
                 else:
                     if reuse_model_action is None:
+                        # if self.stats.n_episodes < 1000 or self.zeta <= 0:
                         reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
-
-                    action = reuse_model_action
+                        # else:
+                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.student_agent_sub.get_q_values(obs))
+                    # if self.stats.n_env_steps < 1e6:
+                        action = reuse_model_action
 
                 action_source = 2
 
@@ -852,6 +907,63 @@ class Executor:
 
                 generate_grid_visualisation(self.env, self.config, self.save_vis_images_path,
                                             self.stats.n_env_steps,  self.visualisation_values)
+            # if self.stats.n_env_steps < 1e6:
+            #     if advice_collection_occurred:
+            #         reward += 0.5
+            #     elif reuse_advice:
+            #         reward += (0.5 - (0.5/1e6)*self.stats.n_env_steps) 
+            # elif action == reuse_model_action:
+            #     reward -= (0.01 + (0.1 / 3e6) * (self.stats.n_env_steps - 2e6))
+            # if self.stats.n_env_steps < 1.5e6:
+            #     if advice_collection_occurred:
+            #         reward += 0.5
+            #     elif reuse_advice:
+            #         reward += (0.5 - (0.5/3e6)*self.stats.n_env_steps) 
+            # elif self.stats.n_env_steps > 2e6 and action == reuse_model_action:
+            #     reward -= (0.1 + (0.3 / 3e6) * (self.stats.n_env_steps - 2e6))
+            # if self.stats.n_episodes < 1000:
+            #     if advice_collection_occurred:
+            #         reward += 0.5
+            #     elif reuse_advice:
+            #         reward += (0.5 - (0.5/1000)*self.stats.n_episodes) 
+                # elif reuse_advice:
+                #     reward += (0.5 - (0.5/1e6)*self.stats.n_env_steps) 
+            # else:
+            #     reuse_uncertainty = self.bc_model.get_uncertainty(obs_next) - self.config['teacher_model_uc_th'] # next obs
+            #     reward += reuse_uncertainty if reuse_uncertainty > 0 else  -0.1
+            if self.stats.n_env_steps < 1e6:
+                # print(f"distance is {distance}")
+                if advice_collection_occurred or reuse_advice:
+                    if not distance:
+                        reward += 0.5
+                    elif distance * 10 > 0.5:
+                        reward += 0.5
+                    elif distance * 10 < 0.1:
+                        reward += 0.1
+                    else:
+                        reward += distance * 10
+                if not advice_collection_occurred and reuse_advice:
+                    self.student_model_uc_values_buffer.append(distance)
+            elif self.stats.n_env_steps < 2e6:
+                if not distance:
+                    distance = self.byol.cal(obs)
+                    sorted_values = sorted(self.student_model_uc_values_buffer)
+                    percentile_ma = np.percentile(sorted_values, 0.9)
+                    percentile_mi = np.percentile(sorted_values, 0.1)
+                    if distance > percentile_ma:
+                        reward += 0.05
+                    elif distance < percentile_mi:
+                        reward -= 0.05
+
+                # elif reuse_advice:
+                #     intric_reward = 0
+                #     if distance * 10 > 0.5:
+                #         intric_reward = 0.5
+                #     elif distance * 10 < 0.1:
+                #         intric_reward = 0.1
+                #     else:
+                #         intric_reward = distance * 10
+                #     reward += (intric_reward - (intric_reward/2000)*self.stats.n_episodes) 
 
             transition = {
                 'obs': obs,
@@ -866,8 +978,7 @@ class Executor:
                 'expert_action': teacher_action,
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
-            if killed:
-                print(f"killed is {killed}, done is {done}")
+
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame(advice_collection_occurred)
@@ -1096,6 +1207,12 @@ class Executor:
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
 
+        # if self.stats.n_episodes >= 1000:
+        #     self.zeta -= 1/ 1000
+        
+        # if self.stats.n_episodes == 2000:
+        #     self.advice_reuse_probability = 1
+
         # render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
         render = self.action_advising_budget > 0 and self.config['visualize_videos']
         if render:
@@ -1148,7 +1265,7 @@ class Executor:
             elif self.config['env_type'] == MINATAR:
                 self.obs_images.append(self.render(self.env))
 
-        if self.config['advice_reuse_method'] == 'none':
+        if self.config['advice_reuse_method'] == 'none' or self.stats.n_env_steps >= 1e6:
             self.reuse_enabled = False
         else:
             if self.config['advice_reuse_method'] == 'restricted' or \

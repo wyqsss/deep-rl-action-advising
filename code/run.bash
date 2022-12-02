@@ -25,7 +25,7 @@
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --dqn-dueling --use-gpu > logs/Freeway.log 2>& 1 &
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --use-gpu --dqn-twin --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method student_model_uc --use-proportional-student-model-uc-th > logs/Freeway_SUA.log 2>& 1 &
 
-for env in Seaquest;
+for env in Qbert;
 do
     for ((i=1; i < 6;i ++))
     do
@@ -38,9 +38,10 @@ do
         # sample effciency average_dist
         # CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 100 --dqn-dueling --seed 24 > logs/$env\_sm_100_2_same5.log 2>& 1 &
         # sample effciency adaptive_dist
-        # CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --visualize-videos --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_20epoch_nearkilled-expr_divdist_newnet_$i.log 2>& 1 &
+        # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_20epoch_newbuffer_1e6_$i.log 2>& 1 &
         # adaptive_dist with reuse
-        CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --visualize-videos --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th --seed 24 > logs/$env\_adap_acbyol_20epoch_newnet_reuse_$i.log 2>& 1 &
+        # CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --dqn-eps-steps 5000000 --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th --seed 24 > logs/$env\_adap_acbyol_reuse_RS_lateeps_$i.log 2>& 1 &
+        CUDA_VISIBLE_DEVICES=1 nohup python -u main.py  --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_adap_reuse_distRS_bufferneg_gpucal_$i.log 2>& 1 &
     done
 done
 

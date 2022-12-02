@@ -120,18 +120,18 @@ colors = ['g', 'dodgerblue', 'orange', 'r']
 
 colors = ['g', 'dodgerblue', 'orange', 'r']
 
-def plt_muti_log(name, color=None):
-    rewards = [[] for n in range(5)]
-    epochs = [[] for n in range(5)]
-    for i in range(5):
+def plt_muti_log(name, color=None, lines=5):
+    rewards = [[] for n in range(lines)]
+    epochs = [[] for n in range(lines)]
+    for i in range(lines):
         data = open(name+f"_{i+1}.log", 'r')
         for line in data:
             items = line.split(" ")
             if items[0] == "Evaluation" and items[1] == '@':
                 epochs[i-1].append(int(float(items[2])))
                 rewards[i-1].append(float(items[-1])) 
-    lengths = [len(epochs[i]) for i in range(5)]
-    for i in range(5):
+    lengths = [len(epochs[i]) for i in range(lines)]
+    for i in range(lines):
         if len(rewards[i]) > min(lengths):
             rewards[i] = rewards[i][:min(lengths)]
     rewards = np.array(rewards)
@@ -154,22 +154,53 @@ def plt_muti_log(name, color=None):
     print(f"min : {len(min_rewards)}, max : {len(max_rewards)}")
     p1 = plt.fill_between(epochs[0], max_rewards, min_rewards, alpha=0.3, color=color)
     return p1
-
-envs = ["Qbert", "Pong", "Seaquest"]
+# envs = ["Pong"]
+# for env in envs:
+#     p0 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_SUAIR", colors[2])
+#     # p1 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_clearbuf_true", color=colors[0])
+#     # p2 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_onetrain_true", colors[1])
+#     # p3 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_true", colors[2])
+#     # p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch_true", colors[3])
+#     # p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+#     p5 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+#     p6 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_reuse", color=colors[0])
+#     p7 = plt_muti_log(f"logs/{env}_adap_acbyol_reuse_RS0.2", color=colors[1])
+#     p8 = plt_muti_log(f"logs/{env}_adap_acbyol_reuse_RS_lateeps", color=colors[3])
+#     p9 = plt_muti_log(f"logs/{env}_adap_reuse_RS_pos_stateneg", color='b')
+#     p10 = plt_muti_log(f"logs/{env}_adap_reuse_RS_600ep", color='y')
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 5e6)
+#     plt.grid()
+#     # plt.xlim(0, 5e6)
+#     plt.title(f"{env}")
+#     plt.legend([p0, p5, p6,p7, p8, p9, p10], ['SUAIR', 'adap_dist', "adap_dist_reuse", "reuse_RS", 'lateeps', 'stateneg', 'ep_decay'])
+#     plt.savefig(f"figures/{env}_muti_comparenet_5e6")
+#     plt.close()
+envs = ["Qbert"]
 for env in envs:
-    p0 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_SUAIR", 'b')
+    p0 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_SUAIR", colors[2])
     # p1 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_clearbuf_true", color=colors[0])
     # p2 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_onetrain_true", colors[1])
     # p3 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_true", colors[2])
     # p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch_true", colors[3])
-    p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+    # p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+    p5 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+    # p6 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_reuse", color=colors[0])
+    # p7 = plt_muti_log(f"logs/{env}_adap_reuse_RS_pos0.5_neg0.1", color=colors[1])
+    # p8 = plt_muti_log(f"logs/{env}_adap_reuse_RS_ucthrold", color=colors[3])
+    # p9 = plt_muti_log(f"logs/{env}_adap_reuse_RS_obsnextuc", color=colors[0])
+    p10 = plt_muti_log(f"logs/{env}_adap_reuse_RS0.5", color=colors[0])
+    # p11 = plt_muti_log(f"logs/{env}_adap_reuse_RS_zetadecay1000_reuseall", color=colors[1], lines=4)
+    # p12 = plt_muti_log(f"logs/{env}_adap_reuse_RS_zetadecay2000_reuseall", color=colors[3])
+    p13 = plt_muti_log(f"logs/{env}_adap_reuse_distRS", color='b')
+    p14 = plt_muti_log(f"logs/{env}_adap_reuse_distRS_bufferneg", color='c')
     plt.margins(x=0, y=0)
-    plt.xlim(0, 5e6)
+    plt.xlim(0, 1e7)
     plt.grid()
-    # plt.xlim(0, 5e6)
+    # plt.ylim(0, 4500)
     plt.title(f"{env}")
-    plt.legend([p0, p5], ['SUAIR', 'newnet'])
-    plt.savefig(f"figures/{env}_muti_comparenet_5e6")
+    plt.legend([p0, p5, p10, p13, p14], ['SUAIR', 'adap_dist', "rs_0.5", 'dist_RS', 'distRS_neg', 'zeta2000_reuseall_usesubmodel', 'zeta2000_reuse0.5_usesubmodel'])
+    plt.savefig(f"figures/{env}_muti_test_1e7")
     plt.close()
 # envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
 # for env in envs:
