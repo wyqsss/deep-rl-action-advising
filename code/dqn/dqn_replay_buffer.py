@@ -29,6 +29,10 @@ class ReplayBuffer(object):
         # self.adviced = []
         self.low_mask = []
 
+        self.low_indexes = []
+        self.high_indexes = []
+        self.arrived = False
+
     def __len__(self):
         return len(self._storage)
 
@@ -41,16 +45,30 @@ class ReplayBuffer(object):
         #     self.adviced.append(0)
 
         if len(self.low_mask) >= self._maxsize:
-            self.low_mask.pop(0)
+            if not self.arrived: # 算一次就行
+                print("cal distribution")
+                self.low_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
+                self.high_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
+                self.arrived = True
+            p_val = self.low_mask.pop(0)
+            if p_val == 1:    # 当提出的时低分的，低分标签也就提出
+                self.low_indexes.pop(0)
+            else:
+                self.high_indexes.pop(0)
             self.life_start_idx -= 1
             if low_score == 'low':
                 self.low_mask.append(1)
                 # mask_idx = (self.life_done_idx - self.life_start_idx) * 0.6 + self.life_start_idx
                 for i in range(self.life_start_idx, self.life_done_idx):
                     self.low_mask[i] = 1
+                    self.low_indexes.append(i)
+                # self.low_indexes.append(self.life_done_idx)
                 self.life_start_idx = self.life_done_idx
             elif low_score == 'high':
                 self.low_mask.append(0)
+                for i in range(self.life_start_idx, self.life_done_idx):
+                    self.high_indexes.append(i)
+                # self.high_indexes.append(self.life_done_idx)
                 self.life_start_idx = self.life_done_idx
             else:
                 self.low_mask.append(0)
@@ -68,10 +86,9 @@ class ReplayBuffer(object):
                 self.low_mask.append(0)
             self.life_done_idx += 1
         if print_ratio:
-            late_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
-            ahead_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
-            print(f"low score samples i {len(late_indexes)} , hight score sample is {len(ahead_indexes)}")
-
+            low_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
+            high_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
+            print(f"low score samples i {len(low_indexes)} , hight score sample is {len(high_indexes)}")
         
         old_data = None
 
@@ -181,10 +198,11 @@ class ReplayBuffer(object):
         return self._encode_sample(idxes, in_numpy_form)
 
     def sample_ad(self, batch_size, beta=0.5, in_numpy_form=True):
-        late_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
-        ahead_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
-        idxes = random.sample(late_indexes, int(batch_size*beta))
-        noad_idx = random.sample(ahead_indexes, batch_size - int(batch_size*beta))
+        if len(self.low_mask) < self._maxsize:
+            self.low_indexes = [i for i, x in enumerate(self.low_mask) if x == 1]
+            self.high_indexes = [i for i, x in enumerate(self.low_mask) if x == 0]
+        idxes = random.sample(self.low_indexes, int(batch_size*beta))
+        noad_idx = random.sample(self.high_indexes, batch_size - int(batch_size*beta))
         idxes.extend(noad_idx)
         random.shuffle(idxes)
         return self._encode_sample(idxes, in_numpy_form)

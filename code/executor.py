@@ -752,14 +752,14 @@ class Executor:
                         # if self.stats.n_episodes < 2000 or self.zeta < 0:
                         #     reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
                         # else:
-                        #     # print(f"qvalues is {q_values}")
-                        #     # q_prob = self.softmax(q_values)
-                        #     # print(q_prob - self.zeta * np.random.dirichlet(np.ones(self.config['env_n_actions']), size=1))
-                        #     # if random.random() < self.zeta_greedy:
-                        #     #     reuse_model_action = self.student_agent.random_action()
-                        #     # else:
-                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
-                        if self.stats.n_env_steps < 1e6:
+                            # print(f"qvalues is {q_values}")
+                            # q_prob = self.softmax(q_values)
+                            # print(q_prob - self.zeta * np.random.dirichlet(np.ones(self.config['env_n_actions']), size=1))
+                            # if random.random() < self.zeta_greedy:
+                            #     reuse_model_action = self.student_agent.random_action()
+                            # else:
+                            # reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
+                        # if self.stats.n_env_steps < 1e6:
                             reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
                             action = reuse_model_action
 
