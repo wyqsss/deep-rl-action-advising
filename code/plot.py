@@ -124,7 +124,7 @@ def plt_muti_log(name, color=None):
     rewards = [[] for n in range(5)]
     epochs = [[] for n in range(5)]
     for i in range(5):
-        data = open(name+f"_{i+1}.log", 'r')
+        data = open(name+f"{i+1}.log", 'r')
         for line in data:
             items = line.split(" ")
             if items[0] == "Evaluation" and items[1] == '@':
@@ -155,21 +155,28 @@ def plt_muti_log(name, color=None):
     p1 = plt.fill_between(epochs[0], max_rewards, min_rewards, alpha=0.3, color=color)
     return p1
 
-envs = ["Qbert", "Pong", "Seaquest"]
+envs = ["Seaquest"]
 for env in envs:
-    p0 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_SUAIR", 'b')
+    p0 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_SUAIR_", colors[2])
     # p1 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_clearbuf_true", color=colors[0])
     # p2 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_onetrain_true", colors[1])
     # p3 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_true", colors[2])
-    # p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch_true", colors[3])
-    p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+    p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_clearbuf_true_", colors[3])
+    # p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
+    # p6 = plt_muti_log(f"logs/{env}_adap_acbyol_reuse_RS0.2_decay", colors[1])
+    # p7 = plt_muti_log(f"logs/{env}_adap_acbyol_reuse_RS1_reawrddecay_", colors[0])
+    # p8 = plt_muti_log(f"logs/{env}_adap_acbyol_reuse_RS0.5_decay_", colors[1])
+    p9 = plt_muti_log(f"logs/{env}_adap_reuse_RS_posneg_", color='cyan')
+    p10 = plt_muti_log(f"logs/{env}_adap_reuse1.0_RS0.5_2e6end_lr_", color=colors[1])
+    # p11 = plt_muti_log(f"logs/{env}_adap_reuse1.0_RS0.5_2e6end_", color=colors[0])
+
     plt.margins(x=0, y=0)
     plt.xlim(0, 5e6)
     plt.grid()
-    # plt.xlim(0, 5e6)
+    plt.ylim(0, 10000)
     plt.title(f"{env}")
-    plt.legend([p0, p5], ['SUAIR', 'newnet'])
-    plt.savefig(f"figures/{env}_muti_comparenet_5e6")
+    plt.legend([p0, p4, p9, p10], ['SUAIR',  "adap_dist", "RS", "lr"])
+    plt.savefig(f"figures/{env}_muti_comparemethod_5e6")
     plt.close()
 # envs = ["Qbert", "Seaquest", "Freeway", "Pong", "Enduro"]
 # for env in envs:

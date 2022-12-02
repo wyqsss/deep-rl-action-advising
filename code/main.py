@@ -141,7 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--advice-reuse-probability-decay', action='store_true', default=False)
     parser.add_argument('--advice-reuse-probability-decay-begin', type=int, default=5e4)
     parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=2.5e6)
-    parser.add_argument('--advice-reuse-probability-final', type=float, default=0.1)
+    parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
 
     parser.add_argument('--evaluate-advice-reuse-model', action='store_true', default=False)
     parser.add_argument('--generate-extra-visualisations', action='store_true', default=False)
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                                             config['env_training_seed'],
                                             config['env_evaluation_seed'])
 
-    executor = Executor(config, env, eval_env)
-    executor.run()
-    # eval(config, eval_env)
+    # executor = Executor(config, env, eval_env)
+    # executor.run()
+    eval(config, eval_env)
     

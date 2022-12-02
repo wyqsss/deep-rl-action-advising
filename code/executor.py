@@ -124,6 +124,10 @@ class Executor:
         
         self.pol_average_distance = None
 
+        self.reused_advices = 0
+
+        self.zeta = 0
+
     # ==================================================================================================================
 
     def render(self, env):
@@ -484,7 +488,7 @@ class Executor:
                 action = teacher_action
                 action_is_explorative = False
             else:
-                self_action, action_is_explorative = self.student_agent.get_action(obs)
+                self_action, action_is_explorative, q_values = self.student_agent.get_action(obs)
             # print(f"obs shape is {obs.shape}")
             if action_is_explorative:
                 self.stats.exploration_steps_taken += 1
@@ -666,7 +670,8 @@ class Executor:
                         self.samples_since_imitation >= self.config['advice_imitation_period_samples']:
 
                     print(self.steps_since_imitation, self.samples_since_imitation)
-
+                    # self.config['advice_imitation_training_iterations_init'] = 20 # use for debug
+                    # self.config['advice_imitation_training_iterations_periodic'] = 20
                     if not self.initial_imitation_is_performed:
                         train_behavioural_cloner(self.bc_model,
                                                  self.config['advice_imitation_training_iterations_init'])
@@ -702,6 +707,7 @@ class Executor:
             # Reuse
             # reuse_start = time.time()
             reuse_model_action = None
+            adviced_prob = None
 
             if self.config['evaluate_advice_reuse_model']:
                 if self.config['advice_reuse_method'] != 'none' and \
@@ -737,13 +743,21 @@ class Executor:
                                 reuse_advice = True
 
             if reuse_advice:
+                self.reused_advices += 1
                 if self.config['advice_imitation_method'] == 'tabular_lookup':
                     action = self.advice_lookup_table[state_id]
                 else:
                     if reuse_model_action is None:
-                        reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                        # if self.stats.n_episodes < 1500:
+                        adviced_prob = self.bc_model.get_action_probs(obs)
+                        # reuse_model_action = np.argmax(adviced_prob)
+                        # elif self.zeta < 0:
+                        # reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                        # else:
+                        #     # print("for debug reuse action")
+                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_logits(obs))
 
-                    action = reuse_model_action
+                        action = reuse_model_action
 
                 action_source = 2
 
@@ -767,7 +781,6 @@ class Executor:
             # reuse_end = time.time()
             # print('reuse time: %s Seconds'%(reuse_end - reuse_start))
             # ----------------------------------------------------------------------------------------------------------
-
             if action is None:
                 if self.config['utilise_imitated_model'] and self.initial_imitation_is_performed:
                     if self.config['advice_imitation_method'] == 'tabular_lookup':
@@ -852,7 +865,20 @@ class Executor:
 
                 generate_grid_visualisation(self.env, self.config, self.save_vis_images_path,
                                             self.stats.n_env_steps,  self.visualisation_values)
-
+            if self.stats.n_env_steps < 1e6:
+                if advice_collection_occurred:
+                    reward += 0.5
+            #     elif reuse_advice:
+            #         reward += (0.5 - (0.5/1e6)*self.stats.n_env_steps) 
+                    # reward += 0.5
+            # elif action == reuse_model_action:
+            #     reward -= (0.01 + (0.2 / 3e6) * (self.stats.n_env_steps - 2e6))
+            # if self.stats.n_episodes < 1500:
+            #     if advice_collection_occurred:
+            #         reward += 0.5
+            #     elif reuse_advice:
+            #         reward += (0.5 - (0.5 / 1500) * self.stats.n_episodes)
+                    
             transition = {
                 'obs': obs,
                 'action': action,
@@ -864,10 +890,9 @@ class Executor:
                 'state_id': state_id,
                 'state_id_next': state_id_next,
                 'expert_action': teacher_action,
-                'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
+                'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False,
+                'adviced_prob': adviced_prob if not adviced_prob is None else np.zeros(self.config['env_n_actions'])
             }
-            if killed:
-                print(f"killed is {killed}, done is {done}")
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame(advice_collection_occurred)
@@ -975,7 +1000,8 @@ class Executor:
                 print('episode_reward_real : {:.1f}'.format(self.episode_reward_real), end=' | ')
                 print('episode_duration : {}'.format(self.episode_duration), end=' | ')
                 print('n_env_steps : {}'.format(self.stats.n_env_steps), end=' | ')
-                print('left advice : {}'.format(self.action_advising_budget))
+                print('left advice : {}'.format(self.action_advising_budget),  end=' | ')
+                print('reused advice : {}'.format(self.reused_advices))
 
                 if render:
                     if self.config['env_type'] == ALE:
@@ -1095,6 +1121,11 @@ class Executor:
 
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
+
+        self.reused_advices = 0
+
+        # if self.stats.n_episodes >= 1500:
+        #     self.zeta -= 1/ 1000
 
         # render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
         render = self.action_advising_budget > 0 and self.config['visualize_videos']
