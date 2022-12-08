@@ -394,7 +394,7 @@ class EpsilonGreedyDQN(DQN):
                                  feed_dict=feed_dict)
 
             loss_lm, loss_lm_weighted, loss_l2, loss_l2_weighted = 0.0, 0.0, 0.0, 0.0
-        print(f"loss is {loss_batch}, kl loss is {kl_loss}")
+        # print(f"loss is {loss_batch}, kl loss is {kl_loss}")
         return td_error_batch if is_batch else td_error_batch[0], loss_batch if is_batch else loss_batch[0], \
                loss_ql, loss_ql_weighted, \
                loss_lm, loss_lm_weighted, \

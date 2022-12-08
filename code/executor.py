@@ -668,8 +668,6 @@ class Executor:
                             if distance > self.pol_average_distance:
                                 advice_collection_occurred = True
 
-            if self_action is not None and self_action > 10:
-                print(f"self action is {self_action}")
             if advice_collection_occurred:
                 # print("use advice")
                 if self.config['env_type'] == GRIDWORLD:
@@ -692,8 +690,7 @@ class Executor:
                         self.samples_since_imitation += 1
 
             self.steps_since_imitation += 1
-            if teacher_action is not None and teacher_action > 10:
-                print(f"teacher action is {teacher_action}")
+
             # ----------------------------------------------------------------------------------------------------------
 
             # RND - UNUSED
