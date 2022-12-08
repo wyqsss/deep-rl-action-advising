@@ -503,6 +503,8 @@ class EpsilonGreedyDQN(DQN):
 
     def get_action(self, obs):
         q_values = self.get_q_values(obs)
+        if self.n_heads > 1:
+            q_values = q_values.sum(axis=0)
         if random.random() < self.eps:
             return super().random_action(), True, q_values
         else:

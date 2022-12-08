@@ -124,7 +124,7 @@ class Executor:
         
         self.pol_average_distance = None
 
-        # self.zeta = 1
+        self.zeta = 1
 
         # self.student_agent_sub = None
 
@@ -670,7 +670,8 @@ class Executor:
                             if distance > self.pol_average_distance:
                                 advice_collection_occurred = True
 
-
+            if self_action is not None and self_action > 10:
+                print(f"self action is {self_action}")
             if advice_collection_occurred:
                 # print("use advice")
                 if self.config['env_type'] == GRIDWORLD:
@@ -693,7 +694,8 @@ class Executor:
                         self.samples_since_imitation += 1
 
             self.steps_since_imitation += 1
-
+            if teacher_action is not None and teacher_action > 10:
+                print(f"teacher action is {teacher_action}")
             # ----------------------------------------------------------------------------------------------------------
 
             # RND - UNUSED
@@ -784,7 +786,7 @@ class Executor:
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
                             # reuse_uncertainty = bc_uncertainty - self.config['teacher_model_uc_th']
                             if bc_uncertainty < self.config['teacher_model_uc_th']: # or (self.zeta < 1 and self.zeta > 0):
-                                if not distance:
+                                if not distance and self.stats.n_env_steps < 1e6:
                                     distance = self.byol.cal(obs)
                                 reuse_advice = True
 
@@ -793,10 +795,10 @@ class Executor:
                     action = self.advice_lookup_table[state_id]
                 else:
                     if reuse_model_action is None:
-                        # if self.stats.n_episodes < 1000 or self.zeta <= 0:
-                        reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
-                        # else:
-                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.student_agent_sub.get_q_values(obs))
+                        if self.stats.n_env_steps < 1e6 or self.zeta <= 0:
+                            reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                        else:
+                            reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
                     # if self.stats.n_env_steps < 1e6:
                         action = reuse_model_action
 
@@ -863,7 +865,10 @@ class Executor:
             obs_next, reward, reward_real, done = None, None, None, None
 
             if self.config['env_type'] == ALE:
-                obs_next, reward, done, info, reward_real, killed = self.env.step(action)
+                try:
+                    obs_next, reward, done, info, reward_real, killed = self.env.step(action)
+                except:
+                    print(f"action is {action}")
 
             elif self.config['env_type'] == BOX2D:
                 obs_next, reward, done, info = self.env.step(action)
@@ -938,22 +943,22 @@ class Executor:
                         reward += 0.5
                     elif distance * 10 > 0.5:
                         reward += 0.5
-                    elif distance * 10 < 0.1:
-                        reward += 0.1
+                    # elif distance * 10 < 0.1:
+                    #     reward += 0.1
                     else:
                         reward += distance * 10
-                if not advice_collection_occurred and reuse_advice:
-                    self.student_model_uc_values_buffer.append(distance)
-            elif self.stats.n_env_steps < 2e6:
-                if not distance:
-                    distance = self.byol.cal(obs)
-                    sorted_values = sorted(self.student_model_uc_values_buffer)
-                    percentile_ma = np.percentile(sorted_values, 0.9)
-                    percentile_mi = np.percentile(sorted_values, 0.1)
-                    if distance > percentile_ma:
-                        reward += 0.05
-                    elif distance < percentile_mi:
-                        reward -= 0.05
+            #     if not advice_collection_occurred and reuse_advice:
+            #         self.student_model_uc_values_buffer.append(distance)
+            # elif self.stats.n_env_steps < 2e6:
+            #     if not distance:
+            #         distance = self.byol.cal(obs)
+            #         sorted_values = sorted(self.student_model_uc_values_buffer)
+            #         percentile_ma = np.percentile(sorted_values, 0.9)
+            #         percentile_mi = np.percentile(sorted_values, 0.1)
+            #         if distance > percentile_ma:
+            #             reward += 0.05
+            #         elif distance < percentile_mi:
+            #             reward -= 0.05
 
                 # elif reuse_advice:
                 #     intric_reward = 0
@@ -964,6 +969,8 @@ class Executor:
                 #     else:
                 #         intric_reward = distance * 10
                 #     reward += (intric_reward - (intric_reward/2000)*self.stats.n_episodes) 
+            if self.stats.n_env_steps >= 1e6: #衰减
+                self.zeta -= 1/ 1e6
 
             transition = {
                 'obs': obs,
@@ -1206,9 +1213,6 @@ class Executor:
 
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
-
-        # if self.stats.n_episodes >= 1000:
-        #     self.zeta -= 1/ 1000
         
         # if self.stats.n_episodes == 2000:
         #     self.advice_reuse_probability = 1

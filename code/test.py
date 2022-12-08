@@ -30,7 +30,7 @@ from behavioural_cloning.bc_base import BehaviouralCloning
 from dqn.dqn_twin import DQNTwin
 
 from constants.general import *
-checkpoints_dir = "/home/wyq/code/deep-rl-action-advising/Runs/Checkpoints/"
+checkpoints_dir = "/home/wyq/deep-rl-action-advising/Runs/Checkpoints/"
 
 def eval(config, eval_env):
     env_info = ENV_INFO[config['env_key']]
@@ -82,8 +82,8 @@ def eval(config, eval_env):
                                                   config['dqn_eps_start'],
                                                   config['dqn_eps_final'],
                                                   config['dqn_eps_steps'], stats=None,
-                                                  demonstrations_datasets=None, n_heads=config['n_heads'])
-    student_agent.restore(checkpoints_dir, config['load_student'], 46e5)
+                                                  demonstrations_datasets=None, n_heads=config['n_heads'], network_naming_structure_v1=True)
+    student_agent.restore(checkpoints_dir, config['load_student'], 70e5)
     eval_total_reward_real = 0.0
     eval_total_reward = 0.0
     eval_duration = 0
@@ -174,6 +174,8 @@ def eval(config, eval_env):
                 eval_total_reward += eval_episode_reward
                 eval_total_reward_real += eval_episode_reward_real
                 break
+
+        print(f"epside reward : {eval_episode_reward_real}, epside steps : {eval_duration}")
 
     eval_mean_reward = eval_total_reward / float(config['n_evaluation_trials'])
     eval_mean_reward_real = eval_total_reward_real / float(config['n_evaluation_trials'])
