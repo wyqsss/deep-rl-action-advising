@@ -946,8 +946,8 @@ class Executor:
                         reward += 0.5
                     elif distance * 10 > 0.5:
                         reward += 0.5
-                    # elif distance * 10 < 0.1:
-                    #     reward += 0.1
+                    elif distance * 10 < 0.1:
+                        reward += 0.1
                     else:
                         reward += distance * 10
             #     if not advice_collection_occurred and reuse_advice:
