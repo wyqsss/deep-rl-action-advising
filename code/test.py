@@ -170,7 +170,7 @@ def eval(config, eval_env):
             eval_done = eval_done or eval_episode_duration >= max_timesteps
 
             if eval_done:
-
+                print(f"this episode reward reward {eval_episode_reward}, real reward is {eval_episode_reward_real}")
                 eval_total_reward += eval_episode_reward
                 eval_total_reward_real += eval_episode_reward_real
                 break

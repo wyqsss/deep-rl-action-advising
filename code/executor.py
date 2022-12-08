@@ -124,11 +124,9 @@ class Executor:
         
         self.pol_average_distance = None
 
-        self.zeta = 1
+        self.reused_advices = 0
 
-        # self.student_agent_sub = None
-
-        # self.copy_sub = False
+        self.zeta = 0
 
     # ==================================================================================================================
 
@@ -753,6 +751,7 @@ class Executor:
             # Reuse
             # reuse_start = time.time()
             reuse_model_action = None
+            adviced_prob = None
 
             if self.config['evaluate_advice_reuse_model']:
                 if self.config['advice_reuse_method'] != 'none' and \
@@ -791,15 +790,20 @@ class Executor:
                                 reuse_advice = True
 
             if reuse_advice:
+                self.reused_advices += 1
                 if self.config['advice_imitation_method'] == 'tabular_lookup':
                     action = self.advice_lookup_table[state_id]
                 else:
                     if reuse_model_action is None:
-                        if self.stats.n_env_steps < 1e6 or self.zeta <= 0:
-                            reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
-                        else:
-                            reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_probs(obs))
-                    # if self.stats.n_env_steps < 1e6:
+                        # if self.stats.n_episodes < 1500:
+                        adviced_prob = self.bc_model.get_action_probs(obs)
+                        reuse_model_action = np.argmax(adviced_prob)
+                        # elif self.zeta < 0:
+                        # reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                        # else:
+                        #     # print("for debug reuse action")
+                        #     reuse_model_action = np.argmax(q_values - self.zeta * self.bc_model.get_action_logits(obs))
+
                         action = reuse_model_action
 
                 action_source = 2
@@ -824,7 +828,6 @@ class Executor:
             # reuse_end = time.time()
             # print('reuse time: %s Seconds'%(reuse_end - reuse_start))
             # ----------------------------------------------------------------------------------------------------------
-
             if action is None:
                 if self.config['utilise_imitated_model'] and self.initial_imitation_is_performed:
                     if self.config['advice_imitation_method'] == 'tabular_lookup':
@@ -969,8 +972,7 @@ class Executor:
                 #     else:
                 #         intric_reward = distance * 10
                 #     reward += (intric_reward - (intric_reward/2000)*self.stats.n_episodes) 
-            if self.stats.n_env_steps >= 1e6: #衰减
-                self.zeta -= 1/ 1e6
+
 
             transition = {
                 'obs': obs,
@@ -983,9 +985,9 @@ class Executor:
                 'state_id': state_id,
                 'state_id_next': state_id_next,
                 'expert_action': teacher_action,
-                'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
+                'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False,
+                'adviced_prob': adviced_prob if not adviced_prob is None else np.zeros(self.config['env_n_actions'])
             }
-
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame(advice_collection_occurred)
@@ -1093,7 +1095,8 @@ class Executor:
                 print('episode_reward_real : {:.1f}'.format(self.episode_reward_real), end=' | ')
                 print('episode_duration : {}'.format(self.episode_duration), end=' | ')
                 print('n_env_steps : {}'.format(self.stats.n_env_steps), end=' | ')
-                print('left advice : {}'.format(self.action_advising_budget))
+                print('left advice : {}'.format(self.action_advising_budget),  end=' | ')
+                print('reused advice : {}'.format(self.reused_advices))
 
                 if render:
                     if self.config['env_type'] == ALE:
@@ -1216,6 +1219,11 @@ class Executor:
         
         # if self.stats.n_episodes == 2000:
         #     self.advice_reuse_probability = 1
+
+        self.reused_advices = 0
+
+        # if self.stats.n_episodes >= 1500:
+        #     self.zeta -= 1/ 1000
 
         # render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
         render = self.action_advising_budget > 0 and self.config['visualize_videos']

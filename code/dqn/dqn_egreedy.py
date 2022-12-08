@@ -10,12 +10,13 @@ class EpsilonGreedyDQN(DQN):
                  network_naming_structure_v1=False, n_heads=1):
         super(EpsilonGreedyDQN, self).__init__(id, config, session, stats, demonstrations_datasets,
                                                network_naming_structure_v1)
-
+        self.KL = tf.keras.losses.KLDivergence(reduction="auto", name="kl_divergence")
+        
         self.type = 'egreedy'
 
         self.create_replay_memory()
 
-        self.minibatch_keys = ('obs', 'action', 'reward', 'obs_next', 'done')
+        self.minibatch_keys = ('obs', 'action', 'reward', 'obs_next', 'done', 'adviced_prob')
         self.n_heads = n_heads
 
         self.eps_start = eps_start
@@ -100,6 +101,10 @@ class EpsilonGreedyDQN(DQN):
     def build_training_ops(self):
         self.tf_vars['action'] = tf.compat.v1.placeholder(tf.compat.v1.int32, [None],
                                                           name='ACTIONS_' + str(self.id))
+        # 获得advice 样本的KL散度 loss
+        self.tf_vars['tar_adviced_prob'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [self.config['dqn_batch_size'], None],
+                                                          name='tar_adviced_prob' + str(self.id))
+        self.tf_vars['kl_loss'] = tf.reduce_mean(self.KL(self.tf_vars['tar_adviced_prob'], tf.compat.v1.nn.softmax(self.tf_vars['q_values'])))
         if self.n_heads > 1:
             self.tf_vars['td_target'] = tf.compat.v1.placeholder(tf.compat.v1.float32, [self.n_heads, None],
                                                              name='LABELS_' + str(self.id))
@@ -182,6 +187,7 @@ class EpsilonGreedyDQN(DQN):
                                                                           self.config['dqn_l2_loss_weight'])
             self.tf_vars['loss'] = tf.compat.v1.math.add(self.tf_vars['loss'], self.tf_vars['loss_l2_weighted'])
 
+        self.tf_vars['loss'] = tf.compat.v1.math.add(self.tf_vars['loss'], self.tf_vars['kl_loss'])
         optimizer = tf.compat.v1.train.AdamOptimizer(self.config['dqn_learning_rate'],
                                                      epsilon=self.config['dqn_adam_eps'])
         self.tf_vars['grads_update'] = optimizer.minimize(self.tf_vars['loss'])
@@ -269,8 +275,8 @@ class EpsilonGreedyDQN(DQN):
                     minibatch[key] = np.asarray(minibatch_[i], dtype=np.float32)
             else:
                 minibatch[key] = minibatch_[i]
-            if i == 4:
-                break
+            # if i == 4:
+            #     break
 
         if self.config['dqn_rm_type'] == 'uniform':
             minibatch['source'] = minibatch_[-1]['source']
@@ -381,14 +387,14 @@ class EpsilonGreedyDQN(DQN):
 
         else:
             td_error_batch, loss_batch, _, q_vals, \
-            loss_ql, loss_ql_weighted, = \
+            loss_ql, loss_ql_weighted, kl_loss = \
                 self.session.run([self.tf_vars['td_error'], self.tf_vars['loss'],
                                   self.tf_vars['grads_update'],self.tf_vars['q_values'],
-                                  self.tf_vars['loss_ql'], self.tf_vars['loss_ql_weighted']],
+                                  self.tf_vars['loss_ql'], self.tf_vars['loss_ql_weighted'], self.tf_vars['kl_loss']],
                                  feed_dict=feed_dict)
 
             loss_lm, loss_lm_weighted, loss_l2, loss_l2_weighted = 0.0, 0.0, 0.0, 0.0
-
+        print(f"loss is {loss_batch}, kl loss is {kl_loss}")
         return td_error_batch if is_batch else td_error_batch[0], loss_batch if is_batch else loss_batch[0], \
                loss_ql, loss_ql_weighted, \
                loss_lm, loss_lm_weighted, \
@@ -478,11 +484,14 @@ class EpsilonGreedyDQN(DQN):
         done_batch = super().fix_batch_form(minibatch['done'], is_batch)
         state_id_batch = super().fix_batch_form(minibatch['state_id'], is_batch)
         td_target_batch = self.get_td_target(reward_batch, obs_next_batch, done_batch, state_id_batch)
+        adviced_prob_batch = super().fix_batch_form(minibatch['adviced_prob'], is_batch)
 
         feed_dict = {self.tf_vars['obs']: obs_batch,
                      self.tf_vars['action']: action_batch,
                      self.tf_vars['dropout_rate']: self.config['dqn_dropout_rate'],
-                     self.tf_vars['td_target']: td_target_batch}
+                     self.tf_vars['td_target']: td_target_batch,
+                     self.tf_vars['tar_adviced_prob']: adviced_prob_batch
+                     }
 
         feed_dict_simple = {
             'obs': obs_batch,
