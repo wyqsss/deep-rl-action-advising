@@ -135,3 +135,4 @@ Runs/*
 *.zip
 *.jpg
 code/logs/*
+*.pdf
