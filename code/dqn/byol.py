@@ -136,12 +136,20 @@ class BYOL_(object):
             # del projection
             # del embedding
         self.count = len(self.features)
+        self.features = torch.stack(self.features)
         print(f"there is {self.count} features")
-        self.features = torch.sum(torch.stack(self.features), dim=0).unsqueeze(0).cuda()
+        pol_average_distance = 0
+        for i in range(len(self.features)):
+            sample = self.features[i]
+            cos_val = torch.mean(torch.mm(self.features, sample.reshape(-1, 1))).numpy()
+            pol_average_distance += (1 - cos_val)
+
+        pol_average_distance = pol_average_distance / len(self.features)
+
+        self.features = torch.sum(self.features, dim=0).unsqueeze(0).cuda()
         # if len(self.features_nearkilled) > 0:
         #     self.features_nearkilled = torch.stack(self.features_nearkilled)
         # torch.save(self.features, f"logs/{epochs}-{self.count}.pth")
-        pol_average_distance = 0
         # dist = []
         # for i in range(len(self.features)):
         #     sample = self.features[i]
@@ -212,11 +220,15 @@ class BYOL_(object):
 
         buffer_dataset = BufferDataset(replaybuffer)
         buffer_loader = DataLoader(buffer_dataset, batch_size=self.batch_size, shuffle=True)
+        skip_num = len(buffer_dataset) // 10000 # 每次只训练一万张
+        print(f"skip num is {skip_num}")
         ep = 0
         # for _ in range(max(epochs // 2**(self.count), 10)):
         for _ in range(epochs):
             epochs_loss = 0
             for  idx, trans in enumerate(buffer_loader):
+                if idx % skip_num != 0:
+                    continue
                 images, actions, next_images = trans[0], trans[1], trans[2]
             # for idx in range(replaybuffer.__len__() // self.batch_size):
                 # images = replaybuffer._encode_sample([item for item in range(idx, idx + self.batch_size\

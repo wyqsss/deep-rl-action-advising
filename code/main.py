@@ -162,6 +162,11 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=1.0) # 平均余弦距离的系数
     parser.add_argument('--cons-learning-epoch', type=int, default=100)
     parser.add_argument('--cons-learning-inter', type=int, default=10000)
+    # 是否进行reward shape
+    parser.add_argument('--reward-shape', action='store_true', default=False)
+    parser.add_argument('--C1', type=int, default=1e6)
+    parser.add_argument('--C2', type=int, default=1e6)
+    parser.add_argument('--intrinsic_reward', type=float, default=0.5)
 
 
     # ------------------------------------------------------------------------------------------------------------------

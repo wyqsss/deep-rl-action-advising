@@ -124,7 +124,7 @@ class Executor:
         
         self.pol_average_distance = None
 
-        # self.zeta = 1
+        self.zeta = 1
 
         # self.student_agent_sub = None
 
@@ -466,9 +466,9 @@ class Executor:
 
         # --------------------------------------------------------------------------------------------------------------
 
-        eval_score, eval_score_real = self.evaluate()
+        eval_score, eval_score_real, reuse_learned_rate = self.evaluate()
         print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
-
+        print(f"reuse_learned_rate : {reuse_learned_rate}")
         obs, render = self.reset_env()
         state_id = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
         state_id_next = None
@@ -784,7 +784,7 @@ class Executor:
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
                             # reuse_uncertainty = bc_uncertainty - self.config['teacher_model_uc_th']
                             if bc_uncertainty < self.config['teacher_model_uc_th']: # or (self.zeta < 1 and self.zeta > 0):
-                                if not distance:
+                                if self.config['advice_collection_method'] == 'sample_efficency' and not distance and self.stats.n_env_steps < self.config['C1']:
                                     distance = self.byol.cal(obs)
                                 reuse_advice = True
 
@@ -907,13 +907,12 @@ class Executor:
 
                 generate_grid_visualisation(self.env, self.config, self.save_vis_images_path,
                                             self.stats.n_env_steps,  self.visualisation_values)
-            # if self.stats.n_env_steps < 1e6:
+            # if self.stats.n_env_steps < 2e6:
             #     if advice_collection_occurred:
-            #         reward += 0.5
+            #         reward += 0.2
             #     elif reuse_advice:
-            #         reward += (0.5 - (0.5/1e6)*self.stats.n_env_steps) 
-            # elif action == reuse_model_action:
-            #     reward -= (0.01 + (0.1 / 3e6) * (self.stats.n_env_steps - 2e6))
+            #         reward += (0.2 - (0.2/2e6)*self.stats.n_env_steps) 
+
             # if self.stats.n_env_steps < 1.5e6:
             #     if advice_collection_occurred:
             #         reward += 0.5
@@ -931,29 +930,40 @@ class Executor:
             # else:
             #     reuse_uncertainty = self.bc_model.get_uncertainty(obs_next) - self.config['teacher_model_uc_th'] # next obs
             #     reward += reuse_uncertainty if reuse_uncertainty > 0 else  -0.1
-            if self.stats.n_env_steps < 1e6:
-                # print(f"distance is {distance}")
-                if advice_collection_occurred or reuse_advice:
-                    if not distance:
-                        reward += 0.5
-                    elif distance * 10 > 0.5:
-                        reward += 0.5
-                    elif distance * 10 < 0.1:
-                        reward += 0.1
-                    else:
-                        reward += distance * 10
-                if not advice_collection_occurred and reuse_advice:
-                    self.student_model_uc_values_buffer.append(distance)
-            elif self.stats.n_env_steps < 2e6:
-                if not distance:
-                    distance = self.byol.cal(obs)
-                    sorted_values = sorted(self.student_model_uc_values_buffer)
-                    percentile_ma = np.percentile(sorted_values, 0.9)
-                    percentile_mi = np.percentile(sorted_values, 0.1)
-                    if distance > percentile_ma:
-                        reward += 0.05
-                    elif distance < percentile_mi:
-                        reward -= 0.05
+            if self.config['reward_shape']:
+                if self.stats.n_env_steps < 1e6:
+                    # if advice_collection_occurred or reuse_advice:
+                    #     if not distance:
+                    #         reward += 0.5
+                    #     elif distance * 10 > 0.5:
+                    #         reward += 0.5
+                    #     # elif distance * 10 < 0.1:
+                    #     #     reward += 0.1
+                    #     else:
+                    #         reward += distance * 20
+                            # print(f"intrisic reward is {distance * 20}")
+                    if advice_collection_occurred or reuse_advice:
+                        if not distance:
+                            reward += self.config['intrinsic_reward']
+                        # elif distance * 10 > 0.5:
+                        #     reward += 0.5
+                        # elif distance * 10 < 0.1:
+                        #     reward += 0.1
+                        else:
+                            reward += self.zeta * np.tanh(distance / self.pol_average_distance) * self.config['intrinsic_reward']
+                            # print(f"intric reward is {np.tanh(distance / self.pol_average_distance) * 0.1}")
+            #     if not advice_collection_occurred and reuse_advice:
+            #         self.student_model_uc_values_buffer.append(distance)
+            # elif self.stats.n_env_steps < 2e6:
+            #     if not distance:
+            #         distance = self.byol.cal(obs)
+            #         sorted_values = sorted(self.student_model_uc_values_buffer)
+            #         percentile_ma = np.percentile(sorted_values, 0.9)
+            #         percentile_mi = np.percentile(sorted_values, 0.1)
+            #         if distance > percentile_ma:
+            #             reward += 0.05
+            #         elif distance < percentile_mi:
+            #             reward -= 0.05
 
                 # elif reuse_advice:
                 #     intric_reward = 0
@@ -964,7 +974,8 @@ class Executor:
                 #     else:
                 #         intric_reward = distance * 10
                 #     reward += (intric_reward - (intric_reward/2000)*self.stats.n_episodes) 
-
+            if self.stats.n_env_steps < self.config['C1']:
+                self.zeta -= 1/self.config['C2']
             transition = {
                 'obs': obs,
                 'action': action,
@@ -1140,37 +1151,37 @@ class Executor:
                 self.steps_reward_real = 0.0
 
             if self.stats.n_env_steps % self.config['evaluation_period'] == 0:
-                eval_score_a, eval_score_real_a = self.evaluate(self.config['utilise_imitated_model'], False)
+                eval_score_a, eval_score_real_a, reuse_learned_rate = self.evaluate(self.config['utilise_imitated_model'], False)
                 print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_a, eval_score_real_a))
-
+                print(f"reuse_learned_rate : {reuse_learned_rate}")
                 # Evaluate (B) with the teacher model enabled (if appropriate)
-                if self.config['advice_imitation_method'] != 'none':
-                    eval_score_b, eval_score_real_b = self.evaluate(True, True)
-                    print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_b, eval_score_real_b))
+                # if self.config['advice_imitation_method'] != 'none':
+                #     eval_score_b, eval_score_real_b = self.evaluate(True, True)
+                #     print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_b, eval_score_real_b))
 
-                    if self.stats.n_evaluations_b >= self.config['advice_reuse_stopping_eval_start']:
-                        self.evaluation_scores_windows[0].append(eval_score_real_a)
-                        self.evaluation_scores_windows[1].append(eval_score_real_b)
+                #     if self.stats.n_evaluations_b >= self.config['advice_reuse_stopping_eval_start']:
+                #         self.evaluation_scores_windows[0].append(eval_score_real_a)
+                #         self.evaluation_scores_windows[1].append(eval_score_real_b)
 
-                    if self.config['advice_reuse_stopping'] and \
-                            self.config['advice_reuse_probability_final'] > 0:  # Compare Evaluation A and Evaluation B scores
+                #     if self.config['advice_reuse_stopping'] and \
+                #             self.config['advice_reuse_probability_final'] > 0:  # Compare Evaluation A and Evaluation B scores
 
-                        if len(self.evaluation_scores_windows[0]) == self.config['advice_reuse_stopping_eval_window_size'] \
-                                and len(self.evaluation_scores_windows[1]) == self.config['advice_reuse_stopping_eval_window_size']:
-                            average_a = np.mean(self.evaluation_scores_windows[0])
-                            average_b = np.mean(self.evaluation_scores_windows[1])
+                #         if len(self.evaluation_scores_windows[0]) == self.config['advice_reuse_stopping_eval_window_size'] \
+                #                 and len(self.evaluation_scores_windows[1]) == self.config['advice_reuse_stopping_eval_window_size']:
+                #             average_a = np.mean(self.evaluation_scores_windows[0])
+                #             average_b = np.mean(self.evaluation_scores_windows[1])
 
-                            if average_b < 0:
-                                target_score = float(average_b) * (2.0 - self.config['advice_reuse_stopping_eval_proximity'])
-                            else:
-                                target_score = float(average_b) * self.config['advice_reuse_stopping_eval_proximity']
+                #             if average_b < 0:
+                #                 target_score = float(average_b) * (2.0 - self.config['advice_reuse_stopping_eval_proximity'])
+                #             else:
+                #                 target_score = float(average_b) * self.config['advice_reuse_stopping_eval_proximity']
 
-                            print('Average A: {} | B: {} | Target: {}'.format(average_a, average_b, target_score))
+                #             print('Average A: {} | B: {} | Target: {}'.format(average_a, average_b, target_score))
 
-                            if average_a >= target_score:
-                                print('>>> Stopping advice reuse!')
-                                self.advice_reuse_probability = 0.0
-                                self.config['advice_reuse_probability_final'] = 0.0
+                #             if average_a >= target_score:
+                #                 print('>>> Stopping advice reuse!')
+                #                 self.advice_reuse_probability = 0.0
+                #                 self.config['advice_reuse_probability_final'] = 0.0
 
 
             if self.config['save_models'] and \
@@ -1265,7 +1276,7 @@ class Executor:
             elif self.config['env_type'] == MINATAR:
                 self.obs_images.append(self.render(self.env))
 
-        if self.config['advice_reuse_method'] == 'none' or self.stats.n_env_steps >= 1e6:
+        if self.config['advice_reuse_method'] == 'none':
             self.reuse_enabled = False
         else:
             if self.config['advice_reuse_method'] == 'restricted' or \
@@ -1293,6 +1304,9 @@ class Executor:
 
         eval_advices_reused = 0
         eval_advices_reused_correct = 0
+
+        reused_acts = 0
+        reused_correct_acts = 0
 
         if self.config['env_type'] == ALE:
             self.eval_env.seed(self.config['env_evaluation_seed'])
@@ -1328,6 +1342,7 @@ class Executor:
         for i_eval_trial in range(self.config['n_evaluation_trials']):
             eval_obs_images = []
 
+            
             eval_obs = None
 
             if self.config['env_type'] == ALE:
@@ -1391,6 +1406,13 @@ class Executor:
                     if not utilise_advice_reuse or eval_action is None:
                         eval_action = self.student_agent.get_greedy_action(eval_obs)
                         # print(f"action is {eval_action}")
+                        if self.config['advice_imitation_method'] != 'none':
+                            bc_uncertainty = self.bc_model.get_uncertainty(eval_obs)   # 计算对advice的学会程度
+                            if bc_uncertainty < self.config['teacher_model_uc_th']:
+                                reuse_model_action = np.argmax(self.bc_model.get_action_probs(eval_obs))
+                                if reuse_model_action == eval_action:
+                                    reused_correct_acts += 1
+                                reused_acts += 1
 
                 eval_obs_next, eval_reward, eval_done = None, None, None
 
@@ -1497,7 +1519,7 @@ class Executor:
                                                    eval_advices_reused,
                                                    eval_advices_reused_correct)
 
-        return eval_mean_reward, eval_mean_reward_real
+        return eval_mean_reward, eval_mean_reward_real, reused_correct_acts / reused_acts if reused_acts > 0 else 0
 
     # ==================================================================================================================
 
