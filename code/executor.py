@@ -1,5 +1,4 @@
 import os
-from turtle import distance
 import psutil
 import pathlib
 import random
@@ -15,6 +14,7 @@ tf.compat.v1.disable_v2_behavior()
 from dqn.dqn_egreedy import EpsilonGreedyDQN
 from dqn.dqn_noisynets import NoisyNetsDQN
 from dqn.byol import BYOL_
+from dqn.rnd import RND
 
 from run_statistics import Statistics
 
@@ -337,12 +337,12 @@ class Executor:
 
         # --------------------------------------------------------------------------------------------------------------
         # # Setup the student agent's RND if needed
-        # if 'novelty' in self.config['action_advising_method']:
-        #     self.student_agent_rnd = RND(self.config['student_id'], self.config, self.session,
-        #                                self.config['rnd_learning_rate'])
-        #
-        #     if self.config['action_advising_method'] == 'state_novelty':
-        #         self.student_agent.rnd_model = self.student_agent_rnd
+        if 'novelty' in self.config['advice_collection_method']:
+            self.actor_agent_rnd = RND(self.config['student_id'], self.config, self.session,
+                                       self.config['rnd_learning_rate'])
+        
+            if self.config['advice_collection_method'] == 'state_novelty':
+                self.student_agent.rnd_model = self.actor_agent_rnd
 
         # --------------------------------------------------------------------------------------------------------------
         # Save experiment configuration to a text file
@@ -669,6 +669,11 @@ class Executor:
                         else:
                             if distance > self.pol_average_distance:
                                 advice_collection_occurred = True
+                elif self.config['advice_collection_method'] == 'advice_novelty':
+                    rnd_value = self.actor_agent_rnd.get_error(obs, evaluation=False, normalize=True)
+                    probability = np.clip(rnd_value/(2 * self.config['rnd_threshold']), 0.0, 1.0)
+                    if probability >= random.random():
+                        advice_collection_occurred = True
 
 
             if advice_collection_occurred:
@@ -697,8 +702,8 @@ class Executor:
             # ----------------------------------------------------------------------------------------------------------
 
             # RND - UNUSED
-            # if self.config['action_advising_method'] == 'advice_novelty' and action is not None:
-            #     self.student_agent_rnd.train_model(obs, loss_id=0, is_batch=False, normalize=True)
+            if self.config['advice_collection_method'] == 'advice_novelty' and action is not None:
+                self.actor_agent_rnd.train_model(obs, loss_id=0, is_batch=False, normalize=True)
 
             # ----------------------------------------------------------------------------------------------------------
             # Imitation

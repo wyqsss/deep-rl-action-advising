@@ -168,6 +168,15 @@ if __name__ == '__main__':
     parser.add_argument('--C2', type=int, default=1e6)
     parser.add_argument('--intrinsic_reward', type=float, default=0.5)
 
+    # RND
+    parser.add_argument('--experiment-setup', type=int, default=0)
+    parser.add_argument('--teacher-availability-step', type=int, default=0)
+    parser.add_argument('--uc-threshold', type=float, default=0.1)
+    parser.add_argument('--rnd-threshold', type=float, default=0.1)
+    parser.add_argument('--rnd-learning-rate', type=float, default=0.0001)
+    parser.add_argument('--rnd-compute-coeffs', action='store_true', default=False)
+    parser.add_argument('--rnd-normalisation-steps', type=int, default=5000)
+
 
     # ------------------------------------------------------------------------------------------------------------------
 
