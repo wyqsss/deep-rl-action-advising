@@ -126,6 +126,8 @@ class Executor:
 
         self.zeta = 1
 
+        self.reused_advices = 0
+
         # self.student_agent_sub = None
 
         # self.copy_sub = False
@@ -794,6 +796,7 @@ class Executor:
                                 reuse_advice = True
 
             if reuse_advice:
+                self.reused_advices += 1
                 if self.config['advice_imitation_method'] == 'tabular_lookup':
                     action = self.advice_lookup_table[state_id]
                 else:
@@ -1102,7 +1105,8 @@ class Executor:
                 print('episode_reward_real : {:.1f}'.format(self.episode_reward_real), end=' | ')
                 print('episode_duration : {}'.format(self.episode_duration), end=' | ')
                 print('n_env_steps : {}'.format(self.stats.n_env_steps), end=' | ')
-                print('left advice : {}'.format(self.action_advising_budget))
+                print('left advice : {}'.format(self.action_advising_budget),  end=' | ')
+                print('reused advice : {}'.format(self.reused_advices))
 
                 if render:
                     if self.config['env_type'] == ALE:
@@ -1222,6 +1226,8 @@ class Executor:
 
         self.advices_reused_ep = 0
         self.advices_reused_ep_correct = 0
+
+        self.reused_advices = 0
 
         # if self.stats.n_episodes >= 1000:
         #     self.zeta -= 1/ 1000
