@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2023-01-18T03:51:39.078Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.55" etag="UoqWXy50XqTCoLNEzGD3" version="20.8.5" type="github">
+<mxfile host="app.diagrams.net" modified="2023-02-09T04:50:24.858Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.78" etag="eMJijwou_qttsjcBKty5" version="20.8.16" type="github">
   <diagram id="6ead9xKW_Qst8LFNrcvm" name="第 1 页">
-    <mxGraphModel dx="1021" dy="602" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+    <mxGraphModel dx="193" dy="112" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -228,7 +228,7 @@
         <mxCell id="mZPnwHB0raIvh5t4xeYA-8" value="$$x_t$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Times New Roman;" parent="1" vertex="1">
           <mxGeometry x="1265" y="789" width="28" height="17.23" as="geometry" />
         </mxCell>
-        <mxCell id="mZPnwHB0raIvh5t4xeYA-10" value="$$x_1, x_2 ... x_j ...$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontFamily=Times New Roman;" parent="1" vertex="1">
+        <mxCell id="mZPnwHB0raIvh5t4xeYA-10" value="$$x_1, \dots, x_j, \dots$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontFamily=Times New Roman;" parent="1" vertex="1">
           <mxGeometry x="1395" y="838" width="120" height="33" as="geometry" />
         </mxCell>
         <mxCell id="mZPnwHB0raIvh5t4xeYA-13" value="&lt;br style=&quot;font-size: 13px;&quot;&gt;$$x_j \in \mathbb{R}^K$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontFamily=Times New Roman;" parent="1" vertex="1">
@@ -404,13 +404,13 @@
             <mxPoint x="892.96" y="1053.24" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="xK1vjl29mO53qB7fBP17-58" value="" style="shape=flexArrow;endArrow=classic;html=1;rounded=1;fontFamily=Times New Roman;fontSize=12;fontColor=#000000;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;width=6.382978723404255;endSize=4.561702127659575;endWidth=9.191489361702128;exitX=0.196;exitY=0.995;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" source="fMq1iWLXI49MHX_Gh6SI-37">
+        <mxCell id="xK1vjl29mO53qB7fBP17-58" value="" style="shape=flexArrow;endArrow=classic;html=1;rounded=1;fontFamily=Times New Roman;fontSize=12;fontColor=#000000;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;width=6.382978723404255;endSize=4.561702127659575;endWidth=9.191489361702128;exitX=0.196;exitY=0.995;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="fMq1iWLXI49MHX_Gh6SI-37" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="1111" y="970" as="sourcePoint" />
             <mxPoint x="1114.5" y="1026.1700000000003" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="L4jJWolaCfXkVJtcqSqg-1" value="" style="group" vertex="1" connectable="0" parent="1">
+        <mxCell id="L4jJWolaCfXkVJtcqSqg-1" value="" style="group" parent="1" vertex="1" connectable="0">
           <mxGeometry x="760" y="849" width="50" height="65.6747667087011" as="geometry" />
         </mxCell>
         <mxCell id="2Xh3GLrlYR4H0rZl-e0W-64" value="" style="shape=actor;whiteSpace=wrap;html=1;rounded=0;shadow=1;glass=0;fillStyle=auto;strokeColor=default;fontSize=30;fillColor=#d5e8d4;fontFamily=Times New Roman;" parent="L4jJWolaCfXkVJtcqSqg-1" vertex="1">
