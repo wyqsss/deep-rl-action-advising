@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2023-05-09T03:38:45.642Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35" etag="vmcyQI-Q-rJ-DB8I22Nh" version="21.2.9" type="github">
+<mxfile host="app.diagrams.net" modified="2023-05-09T04:12:30.449Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35" etag="cDBJX2U-GTdP3TgFP6_-" version="21.2.9" type="github">
   <diagram id="6ead9xKW_Qst8LFNrcvm" name="第 1 页">
-    <mxGraphModel dx="827" dy="-2481" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+    <mxGraphModel dx="316" dy="-2781" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1016,13 +1016,13 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="H3LRqT_OTh8I44q0pDjU-254" value="&lt;i style=&quot;border-color: var(--border-color); color: rgb(0, 0, 0); font-size: 12px;&quot;&gt;$$q_\theta(z_{\theta}, a_t)$$&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontFamily=Times New Roman;" parent="1" vertex="1">
-          <mxGeometry x="805.19" y="4291" width="47.19" height="33" as="geometry" />
+          <mxGeometry x="801" y="4293" width="54" height="29" as="geometry" />
         </mxCell>
         <mxCell id="H3LRqT_OTh8I44q0pDjU-255" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=12;" parent="1" source="H3LRqT_OTh8I44q0pDjU-256" target="H3LRqT_OTh8I44q0pDjU-258" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="H3LRqT_OTh8I44q0pDjU-256" value="$$sg(z&#39;_\xi)$$" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=none;fontColor=#333333;strokeColor=none;fontFamily=Times New Roman;" parent="1" vertex="1">
-          <mxGeometry x="884.49" y="4294.01" width="35.66" height="29.99" as="geometry" />
+          <mxGeometry x="884.49" y="4294.01" width="35.66" height="22.99" as="geometry" />
         </mxCell>
         <mxCell id="H3LRqT_OTh8I44q0pDjU-258" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;MSE loss&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;rotation=0;horizontal=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Times New Roman;fontSize=12;" parent="1" vertex="1">
           <mxGeometry x="838.06" y="4338.8" width="56.04" height="20" as="geometry" />
