@@ -7,6 +7,7 @@ import pickle
 import cv2
 import collections
 import tensorflow as tf
+import gym_video_recorder
 
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.disable_v2_behavior()
@@ -30,7 +31,7 @@ from behavioural_cloning.bc_base import BehaviouralCloning
 from dqn.dqn_twin import DQNTwin
 
 from constants.general import *
-checkpoints_dir = "/home/wyq/code/deep-rl-action-advising/Runs/Checkpoints/"
+checkpoints_dir = "/home/wyq/uncertainty/deep-rl-action-advising/Runs/Checkpoints/"
 
 def eval(config, eval_env):
     env_info = ENV_INFO[config['env_key']]
@@ -40,7 +41,7 @@ def eval(config, eval_env):
     config['env_states_are_countable'] = env_info[3]
     config['rm_extra_content'] = ['source', 'state_id', 'state_id_next', 'expert_action', 'preserve']
 
-
+    
     if config['env_type'] == ALE:
         config['env_obs_dims'] = eval_env.observation_space.shape
         config['env_n_actions'] = eval_env.action_space.n
@@ -61,6 +62,9 @@ def eval(config, eval_env):
     elif config['env_type'] == MINATAR:
         config['env_obs_dims'] = eval_env.state_shape()
         config['env_n_actions'] = eval_env.num_actions()
+    elif config['env_type'] == DW:
+            config['env_obs_dims'] = eval_env.observation_space.shape
+            config['env_n_actions'] = eval_env.action_space.n
     if config['use_gpu']:
             print('Using GPU.')
             session_config = tf.compat.v1.ConfigProto(
@@ -83,7 +87,7 @@ def eval(config, eval_env):
                                                   config['dqn_eps_final'],
                                                   config['dqn_eps_steps'], stats=None,
                                                   demonstrations_datasets=None, n_heads=config['n_heads'])
-    student_agent.restore(checkpoints_dir, config['load_student'], 46e5)
+    student_agent.restore(checkpoints_dir, config['load_student'], 2e5)
     eval_total_reward_real = 0.0
     eval_total_reward = 0.0
     eval_duration = 0
@@ -102,6 +106,16 @@ def eval(config, eval_env):
     elif config['env_type'] == MINATAR:
         eval_env.set_random_state(config['env_evaluation_seed'])
 
+    if config['visualize_videos']:
+        print(config['load_student'].split('/')[-2])
+        print(config['seed'])
+        print("capture video")
+        save_videos_path = os.path.join("/home/wyq/deep-rl-action-advising/Runs/Videos", config['load_student'].split('/')[-2], str(config['seed']))
+        print(save_videos_path)
+        os.makedirs(save_videos_path, exist_ok=True)
+        video_capture_eval = gym_video_recorder.VideoRecorder(eval_env, base_path=
+                os.path.join(save_videos_path, 'E_eval'))
+    eval_success = 0
     for i_eval_trial in range(config['n_evaluation_trials']):
         eval_obs_images = []
 
@@ -118,6 +132,8 @@ def eval(config, eval_env):
         elif config['env_type'] == MINATAR:
             eval_env.reset()
             eval_obs = eval_env.state().astype(dtype=np.float32)
+        elif config['env_type'] == DW:
+            eval_obs = eval_env.reset()
 
         eval_state_id = eval_env.get_state_id() if config['env_type'] == GRIDWORLD else None
 
@@ -126,7 +142,8 @@ def eval(config, eval_env):
         eval_episode_duration = 0
 
         while True:
-
+            if config['visualize_videos']:
+                video_capture_eval.capture_frame()
             eval_action = None
             eval_teacher_action = None
 
@@ -157,6 +174,11 @@ def eval(config, eval_env):
                 eval_reward, eval_done = eval_env.act(eval_action)
                 eval_obs_next = eval_env.state().astype(dtype=np.float32)
                 eval_real_reward = eval_reward
+            elif config['env_type'] == DW:
+                    eval_obs_next, eval_reward, eval_done, eval_info = eval_env.step(eval_action)
+                    eval_real_reward = eval_reward
+                    if eval_info['is_success']:
+                        eval_success += 1
 
             eval_episode_reward_real += eval_real_reward
             eval_episode_reward += eval_reward
@@ -173,9 +195,15 @@ def eval(config, eval_env):
 
                 eval_total_reward += eval_episode_reward
                 eval_total_reward_real += eval_episode_reward_real
+                print('Evaluation @  {} & {}'.format(eval_episode_reward, eval_episode_reward_real))
+
+                # video_capture_eval.capture_frame()
+                # video_capture_eval.close()
+                # video_capture_eval.enabled = False
                 break
 
     eval_mean_reward = eval_total_reward / float(config['n_evaluation_trials'])
     eval_mean_reward_real = eval_total_reward_real / float(config['n_evaluation_trials'])
-    print('Evaluation @  {} & {}'.format(eval_mean_reward, eval_mean_reward_real))
+    print(f"evaluation success rate : {eval_success / config['n_evaluation_trials']}")
+    print('Evaluation average @  {} & {}'.format(eval_mean_reward, eval_mean_reward_real))
     return eval_mean_reward, eval_mean_reward_real

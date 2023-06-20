@@ -31,9 +31,9 @@ if __name__ == '__main__':
     parser.add_argument('--run-id', type=str, default=None)
     parser.add_argument('--process-index', type=int, default=0)
     parser.add_argument('--machine-name', type=str, default='NA')
-    parser.add_argument('--n-training-frames', type=int, default=10000000)
+    parser.add_argument('--n-training-frames', type=int, default=2000000)
     parser.add_argument('--n-evaluation-trials', type=int, default=20)
-    parser.add_argument('--evaluation-period', type=int, default=50000)
+    parser.add_argument('--evaluation-period', type=int, default=5000)
     parser.add_argument('--evaluation-visualization-period', type=int, default=200)
 
     parser.add_argument('--visualize-videos', action='store_true', default=False)
@@ -122,10 +122,10 @@ if __name__ == '__main__':
 
     # Imitation
     parser.add_argument('--advice-imitation-method', type=str, default='none')  # 'none', 'initial', 'periodic'
-    parser.add_argument('--advice-imitation-period-steps', type=int, default=50000)
+    parser.add_argument('--advice-imitation-period-steps', type=int, default=200000)
     parser.add_argument('--advice-imitation-period-samples', type=int, default=2500)
-    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=50000)
-    parser.add_argument('--advice-imitation-training-iterations-periodic', type=int, default=20000)
+    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=200000)
+    parser.add_argument('--advice-imitation-training-iterations-periodic', type=int, default=100000)
 
     parser.add_argument('--bc-batch-size', type=int, default=32)
     parser.add_argument('--bc-learning-rate', type=float, default=0.0001)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--reward-shape', action='store_true', default=False)
     parser.add_argument('--C1', type=int, default=1e6)
     parser.add_argument('--C2', type=int, default=1e6)
-    parser.add_argument('--intrinsic_reward', type=float, default=0.5)
+    parser.add_argument('--intrinsic-reward', type=float, default=0.5)
 
     # RND
     parser.add_argument('--experiment-setup', type=int, default=0)
@@ -226,5 +226,5 @@ if __name__ == '__main__':
 
     executor = Executor(config, env, eval_env)
     executor.run()
-    # eval(config, eval_env)
+    # eval(config, env)
     

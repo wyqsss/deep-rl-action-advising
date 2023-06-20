@@ -97,6 +97,19 @@ def generate_envs(env_key, env_training_seed, env_evaluation_seed):
                                  scenario.benchmark_data)
         eval_env.discrete_action_input = True
         eval_env.render_resolution = (200, 200)
+    elif env_type == DW:
+        # from single_transmission_section import TransmissionSectionEnv
+        from nograph_transmission_section import TransmissionSectionEnv  # no graph
+        env = TransmissionSectionEnv(env_name, evaluation=False)
+
+        eval_env = TransmissionSectionEnv(env_name, evaluation=True)
+
+    elif env_type == SW:
+        from dw_env.DSREnv import DSREnv
+
+        env = DSREnv()
+        eval_env = DSREnv()
+
 
     return env, eval_env
 

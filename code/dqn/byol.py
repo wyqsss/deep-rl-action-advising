@@ -19,29 +19,40 @@ from torch.utils.data import DataLoader
 from dqn.buffer_dataset import BufferDataset
 
 class Extra(nn.Module):
-    def __init__(self):
+    def __init__(self, linear=False, input_size=1024):
         super(Extra, self).__init__()
-        self.cnn_layers = nn.Sequential(
-            nn.Conv2d(4, 32, 8, stride=4),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 4, 2),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, 1),
-            nn.ReLU(),
-        )
+        self.linear = linear
+        self.layers = None
+        if linear:
+            self.layers = nn.Sequential(
+                nn.Linear(input_size, 512),
+                nn.ReLU()
+            )
+        else:
+            self.layers = nn.Sequential(
+                nn.Conv2d(4, 32, 8, stride=4),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, 4, 2),
+                nn.ReLU(),
+                nn.Conv2d(64, 64, 3, 1),
+                nn.ReLU(),
+            )
+
+
     
     def forward(self, x):
-        x = self.cnn_layers(x)
-        feature = torch.flatten(x, 1)
-        return feature
+        x = self.layers(x)
+        if not self.linear:
+            x = torch.flatten(x, 1)
+        return x
 
 class BYOL_(object):
-    def __init__(self, batch_size=32, n_actions=0):
+    def __init__(self, batch_size=32, n_actions=0, linear=False, input_size=1024):
         self.batch_size = batch_size
         self.n_actions = n_actions
         # net = models.resnet50(pretrained=True)
         # net.conv1 = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        net = Extra()
+        net = Extra(linear=linear, input_size=input_size)
         self.learner = BYOL(
             net,
             image_size = 64,
@@ -103,10 +114,18 @@ class BYOL_(object):
     def cal_all(self, replaybuffer, epochs=0):
         self.learner.eval()
         self.features = []
-        self.features_nearkilled = []
+        # self.features_nearkilled = []
+        # advised_lsit = []
+        # photoes = []
         for idx in range(replaybuffer.__len__()):
             batch = replaybuffer._encode_sample([idx], True)
             obs = batch[0]
+            # print(f"b5 {batch[5]}")
+            # if batch[5][0]:
+            #     advised_lsit.append(1)
+            # else:
+            #     advised_lsit.append(0)
+            # photoes.append(batch[0][0].flatten())
             # killed = batch[5]
             # obs = np.expand_dims(np.mean(obs, axis=1), axis=1) # .repeat(3, axis=1)
             # print(f"obs shape is {obs.shape}")
@@ -178,7 +197,7 @@ class BYOL_(object):
         #     pol_average_distance += dist
         # # vis_feas = self.features.numpy()
 
-        # tsne_obj = TSNE(n_components=3).fit_transform(vis_feas) # 可视化特征池
+        # tsne_obj = TSNE(n_components=2).fit_transform(np.array(photoes)) # 可视化特征池
         # x_min, x_max = np.min(tsne_obj, 0), np.max(tsne_obj, 0)
         # tsne_obj = tsne_obj / (x_max - x_min)
         # fig = plt.figure()
@@ -190,13 +209,14 @@ class BYOL_(object):
 
 
         # tsne_df = pd.DataFrame({'X':tsne_obj[:,0],
-        #                 'Y':tsne_obj[:,1]})
+        #                 'Y':tsne_obj[:,1], 'advised': advised_lsit})
         # sns.scatterplot(x="X", y="Y",
-        #       palette=['green','red','yellow','blue'],
-        #       legend='full',
-        #       data=tsne_df)
+        #     #   palette=['green','red','yellow','blue'],
+        #     #   legend='full',
+        #     style = 'advised', hue= 'advised', data=tsne_df, s=10)
 
-        # plt.savefig(f"test_figures/{epochs}-{self.count}-features.jpg")
+        # plt.savefig(f"test_figures/{epochs}-{self.count}-features.pdf")
+        # plt.close()
         # print(f"killed features is {len(self.features_nearkilled)}")
         print(f"feature shape is {self.features.shape} , pol_average_distance is {pol_average_distance}")
         return pol_average_distance

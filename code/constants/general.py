@@ -5,7 +5,8 @@ BOX2D = 2
 MINATAR = 3
 MAPE = 4
 CLASSIC = 5
-
+DW = 6  # 118 和 300节点罗伟的环境
+SW = 7 # 电科院的123节点的环境
 
 # Observation type
 NONSPATIAL = 0
@@ -109,6 +110,12 @@ ENV_INFO = {
     'MinAtar-Freeway': ('MA20R', MINATAR, SPATIAL, False, 'freeway', False, 0, 0, MINATAR_TIMELIMIT),
     'MinAtar-Seaquest': ('MA30R', MINATAR, SPATIAL, False, 'seaquest', False, 0, 0, MINATAR_TIMELIMIT),
     'MinAtar-SpaceInvaders': ('MA40R', MINATAR, SPATIAL, False, 'space_invaders', False, 0, 0, MINATAR_TIMELIMIT),
+
+    'DW-v1': ('DW00V1', DW, NONSPATIAL, True, 'S4case118', False, 0, 0, 50),
+
+    'DW-v2': ('DW00V2', DW, NONSPATIAL, True, 'S4case300', False, 0, 0, 50),
+
+    'DW-123': ('DW00V123', SW, NONSPATIAL, True, '', False, 0, 0, 50),
 }
 
 
@@ -134,10 +141,14 @@ TEACHER = {
     'ALE-Qbert-1': ('ALE46V0_EG_000_20201023-120616', '0', 7000e3, 0),
     'ALE-Seaquest-1': ('ALE50V0_EG_000_20201019-132350', '0', 7000e3, 0),
     'ALE-Breakout-1': ('ALE15V0_000_660_20221011-071853', '0', 9800e3, 1),
-    'ALE-SpaceInvaders-1':('ALE53V0_000_194_20221011-200802', '0', 9400e3, 1),
+    'ALE-SpaceInvaders-1':('ALE53V0_000_733_20230114-091421', '0', 7600e3, 1),
 
     # 'BOX2D-LunarLander': ('BOX2D00_000_174_20210527-180912', '100', 2000e3, 0),
-    'BOX2D-LunarLander': ('BOX2D00_000_941_20210718-001159', '103', 400e3, 1)
+    'BOX2D-LunarLander': ('BOX2D00_000_941_20210718-001159', '103', 400e3, 1),
+
+    'DW-v1-1': ('DW00V1_000_783_20230524-073438', '0', 200000, 1),
+    'DW-v2-1': ('DW00V2_000_351_20230618-152949', '0', 4e5, 1)
+    
 }
 
 DEMONSTRATIONS_DATASET = {
@@ -145,6 +156,8 @@ DEMONSTRATIONS_DATASET = {
 }
 # Precomputed for 5000 observations
 RND_MEAN_COEFFS = {
+    'DW-v1': [0.22950383,],
+    'DW-v2': [0.22950383,],
     'GridWorld': [0.01234568, 0.01234568, 0.17283951],
     'ALE-Enduro': [0.22950383, 0.2295122 , 0.2295207 , 0.22952849],
     'ALE-Freeway': [0.48930284, 0.48930272, 0.4893029 , 0.4893033],
@@ -155,6 +168,8 @@ RND_MEAN_COEFFS = {
 
 # Precomputed for 5000 observations
 RND_STD_COEFFS = {
+    'DW-v1': [0.18300994],
+    'DW-v2': [0.22950383,],
     'GridWorld': [0.11042311, 0.11042311, 0.37810846],
     'ALE-Enduro': [0.18300994, 0.18301411, 0.18301918, 0.18302345],
     'ALE-Freeway': [0.19500406, 0.19500417, 0.19500428, 0.1950046 ],

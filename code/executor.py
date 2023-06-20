@@ -271,6 +271,9 @@ class Executor:
         elif self.config['env_type'] == MINATAR:
             self.config['env_obs_dims'] = self.env.state_shape()
             self.config['env_n_actions'] = self.env.num_actions()
+        elif self.config['env_type'] == DW or self.config['env_type'] == SW:
+            self.config['env_obs_dims'] = self.env.observation_space.shape
+            self.config['env_n_actions'] = self.env.action_space.n
 
         print('Environment')
         print('Key (name):', self.config['env_key'])
@@ -280,7 +283,10 @@ class Executor:
         self.config['rm_extra_content'] = ['source', 'state_id', 'state_id_next', 'expert_action', 'preserve']
 
         # --------------------------------------------------------------------------------------------------------------
-        self.byol = BYOL_(n_actions = self.config['env_n_actions'])
+        if self.config['env_type'] == DW or self.config['env_type'] == SW:
+            self.byol = BYOL_(n_actions = self.config['env_n_actions'], linear=True, input_size=self.env.observation_space.shape[0])
+        else:
+            self.byol = BYOL_(n_actions = self.config['env_n_actions'])
         # --------------------------------------------------------------------------------------------------------------
 
         n_states = self.env.n_states if self.config['env_type'] == GRIDWORLD else 0
@@ -791,8 +797,9 @@ class Executor:
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
                             # reuse_uncertainty = bc_uncertainty - self.config['teacher_model_uc_th']
                             if bc_uncertainty < self.config['teacher_model_uc_th']: # or (self.zeta < 1 and self.zeta > 0):
-                                if self.config['advice_collection_method'] == 'sample_efficency' and not distance and self.stats.n_env_steps < self.config['C1']:
-                                    distance = self.byol.cal(obs)
+                                if self.config['reward_shape'] and not distance and self.stats.n_env_steps < self.config['C1']:
+                                    # distance = self.byol.cal(obs)
+                                    distance = None
                                 reuse_advice = True
 
             if reuse_advice:
@@ -890,6 +897,12 @@ class Executor:
                 reward, done = self.env.act(action)
                 reward_real = reward
                 obs_next = self.env.state()
+            elif self.config['env_type'] == DW:
+                obs_next, reward, done, info = self.env.step(action)
+                reward_real = reward
+            elif self.config['env_type'] == SW:
+                obs_next, reward, done, _, _ = self.env.step(action)
+                reward_real = reward
 
             state_id_next = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
 
@@ -939,7 +952,7 @@ class Executor:
             #     reuse_uncertainty = self.bc_model.get_uncertainty(obs_next) - self.config['teacher_model_uc_th'] # next obs
             #     reward += reuse_uncertainty if reuse_uncertainty > 0 else  -0.1
             if self.config['reward_shape']:
-                if self.stats.n_env_steps < 1e6:
+                if self.stats.n_env_steps < self.config['C1']:
                     # if advice_collection_occurred or reuse_advice:
                     #     if not distance:
                     #         reward += 0.5
@@ -990,7 +1003,7 @@ class Executor:
                 'reward': reward,
                 'obs_next': obs_next,
                 'done': done,
-                'killed': killed,
+                # 'killed': killed,
                 'source': action_source,
                 'state_id': state_id,
                 'state_id_next': state_id_next,
@@ -1053,6 +1066,7 @@ class Executor:
 
             if self.config['advice_collection_method'] == 'sample_efficency' and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init'] \
                 and self.student_agent.replay_memory.__len__() % self.config['cons_learning_inter'] == 0 and self.action_advising_budget > 0:
+            # if self.config['advice_collection_method'] == 'early' and self.stats.n_env_steps == 25000:
                 print("begin to train constractive model")
                 self.pol_average_distance = self.byol.train(self.student_agent.replay_memory, self.config['cons_learning_epoch']) * self.config['gamma']
                 self.student_model_uc_values_buffer.clear()
@@ -1274,6 +1288,10 @@ class Executor:
         elif self.config['env_type'] == MINATAR:
             self.env.reset()
             obs = self.env.state()
+        elif self.config['env_type'] == DW:
+            obs = self.env.reset()
+        elif self.config['env_type'] == SW:
+            obs,_ = self.env.reset()
 
         if render:
             if self.config['env_type'] == ALE:
@@ -1313,6 +1331,8 @@ class Executor:
         eval_total_reward = 0.0
         eval_duration = 0
 
+        eval_success = 0
+
         eval_advices_reused = 0
         eval_advices_reused_correct = 0
 
@@ -1349,8 +1369,12 @@ class Executor:
                 pass
             elif self.config['env_type'] == MINATAR:
                 pass
-
+        
+        # eval_trials = 0
+        if self.config['env_type'] == DW:
+            self.config['n_evaluation_trials'] = self.eval_env.n_net
         for i_eval_trial in range(self.config['n_evaluation_trials']):
+        # for i_eval_trial in range(self.eval_env.n_net):
             eval_obs_images = []
 
             
@@ -1367,6 +1391,10 @@ class Executor:
             elif self.config['env_type'] == MINATAR:
                 self.eval_env.reset()
                 eval_obs = self.eval_env.state().astype(dtype=np.float32)
+            elif self.config['env_type'] == DW:
+                eval_obs = self.eval_env.reset()
+            elif self.config['env_type'] == SW:
+                eval_obs,_ = self.eval_env.reset()
 
             eval_state_id = self.eval_env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
 
@@ -1447,6 +1475,14 @@ class Executor:
                 elif self.config['env_type'] == MINATAR:
                     eval_reward, eval_done = self.eval_env.act(eval_action)
                     eval_obs_next = self.eval_env.state().astype(dtype=np.float32)
+                    eval_real_reward = eval_reward
+                elif self.config['env_type'] == DW:
+                    eval_obs_next, eval_reward, eval_done, eval_info = self.eval_env.step(eval_action)
+                    eval_real_reward = eval_reward
+                    if eval_info['is_success']:
+                        eval_success += 1
+                elif self.config['env_type'] == SW:
+                    eval_obs_next, eval_reward, eval_done, _, _ = self.eval_env.step(eval_action)
                     eval_real_reward = eval_reward
 
                 eval_episode_reward_real += eval_real_reward
@@ -1529,7 +1565,8 @@ class Executor:
                                                  self.stats.evaluation_b_reward_real_auc,
                                                    eval_advices_reused,
                                                    eval_advices_reused_correct)
-
+        if self.config['env_type'] == DW:
+            print(f"evaluation success rate : {eval_success / self.eval_env.n_net}")
         return eval_mean_reward, eval_mean_reward_real, reused_correct_acts / reused_acts if reused_acts > 0 else 0
 
     # ==================================================================================================================
@@ -1859,3 +1896,17 @@ def generate_grid_visualisation(env, config, save_path, step_number, values):
 
     fig.clear()
     plt.close(fig)
+
+
+def tsne_visual(pics, advised_lsit, method):
+    tsne_obj = TSNE(n_components=2).fit_transform(np.array(pics)) # 可视化特征池
+    x_min, x_max = np.min(tsne_obj, 0), np.max(tsne_obj, 0)
+    tsne_obj = tsne_obj / (x_max - x_min)
+    tsne_df = pd.DataFrame({'X':tsne_obj[:,0], 'Y':tsne_obj[:,1], 'advised': advised_lsit})
+    sns.scatterplot(x="X", y="Y",
+            #   palette=['green','red','yellow','blue'],
+            #   legend='full',
+    style = 'advised', hue= 'advised', data=tsne_df, s=10)
+
+    plt.savefig(f"test_figures/{method}-{len(pics)}-features.pdf")
+    plt.close()

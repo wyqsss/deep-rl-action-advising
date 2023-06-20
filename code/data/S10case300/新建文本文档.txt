@@ -1,0 +1,76 @@
+ssh://lw@10.214.211.106:18022/home/lw/miniconda3/envs/RL/bin/python -u /home/lw/.pycharm_helpers/pydev/pydevconsole.py --mode=server
+import sys; print('Python %s on %s' % (sys.version, sys.platform))
+sys.path.extend(['/home/lw/RL_Qlearning', '/home/lw/RL_Qlearning'])
+runfile('/home/lw/RL_Qlearning/Final/multi_generator300_10.py', wdir='/home/lw/RL_Qlearning/Final')
+Python 3.8.12 (default, Oct 12 2021, 13:49:34) 
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.28.0 -- An enhanced Interactive Python. Type '?' for help.
+PyDev console: using IPython 7.28.0
+Python 3.8.12 (default, Oct 12 2021, 13:49:34) 
+[GCC 7.5.0] on linux
+making data........
+section: 0 [264, -1] generate successfully!
+average power is: 2087.892676699337
+min and max is: 22.85232497135278 4145.089865926359
+converged net: 387
+num: 146 16 0-145 0-15
+section: 1 [291, 160, 151, 152, -1] generate successfully!
+average power is: 1183.6799147234167
+min and max is: 681.0693005523916 1905.1176246343039
+converged net: 400
+num: 160 14 146-305 16-29
+section: 2 [28, 38, 8, -1] generate successfully!
+average power is: 2400.1599042013713
+min and max is: 1619.3786283508737 3330.5306537247207
+converged net: 369
+num: 171 17 306-476 30-46
+section: 3 [242, 205, 303, -1] generate successfully!
+average power is: 4460.038358903643
+min and max is: 2316.7590880594216 5877.455385568892
+converged net: 363
+num: 179 19 477-655 47-65
+section: 4 [128, 139, -1] generate successfully!
+average power is: 1351.8906149426032
+min and max is: 172.01528939553816 3006.655731338253
+converged net: 371
+num: 165 17 656-820 66-82
+section: 5 [147, -1] generate successfully!
+average power is: 1813.3079867220556
+min and max is: 756.0946419273203 2897.751997588383
+converged net: 369
+num: 180 24 821-1000 83-106
+section: 6 [205, 310, 207, -1] generate successfully!
+average power is: 1306.3516294733513
+min and max is: 835.595413192284 2265.817733430293
+converged net: 372
+num: 88 10 1001-1088 107-116
+section: 7 [306, 200, 240, 303, -1] generate successfully!
+average power is: 3249.3707613229494
+min and max is: 1655.973076515035 4127.396115486001
+converged net: 389
+num: 148 23 1089-1236 117-139
+section: 8 [205, 304, -1] generate successfully!
+average power is: 1529.1230758137187
+min and max is: 934.9382179593516 2253.69867186799
+converged net: 389
+num: 200 20 1237-1436 140-159
+section: 9 [293, -1] generate successfully!
+average power is: 666.5826360935782
+min and max is: 34.57438569586808 1099.452457648132
+converged net: 579
+num: 200 20 1437-1637 160-179
+
+
+1637
+180
+
+[128, 139],
+[264],
+[291, 160, 151, 152],
+[28, 38, 8],
+[242, 205, 303],
+[147],
+[205, 310, 207],
+[306, 200, 240, 303],
+[205, 304],
+[293]
