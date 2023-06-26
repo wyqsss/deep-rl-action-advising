@@ -65,5 +65,5 @@
 for ((i=1; i < 6;i ++))
 do
     # no advice
-    CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --dqn-rm-init 1000 --dqn-target-update 750 --dqn-learning-rate 0.0001 --dqn-eps-steps 25000 --save-models --env-key DW-123 --dqn-dueling --use-gpu  > logs/dw-123/DW-123_noadvice_hard_$i.log 2>& 1 &
+    CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --dqn-rm-init 1000 --dqn-target-update 750 --dqn-learning-rate 0.0001 --dqn-eps-steps 25000 --save-models --env-key DW-123 --evaluation-period 1000 --model-save-period 5000 --dqn-dueling --use-gpu  > logs/dw-123/DW-123_noadvice_easy_$i.log 2>& 1 &
 done
