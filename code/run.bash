@@ -25,12 +25,16 @@
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --dqn-dueling --use-gpu > logs/Freeway.log 2>& 1 &
 # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-Freeway --use-gpu --dqn-twin --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method student_model_uc --use-proportional-student-model-uc-th > logs/Freeway_SUA.log 2>& 1 &
 
-for env in Enduro;
+for env in Pong;
 do
-    for ((i=1; i < 6;i ++))
+    for ((i=3; i < 4;i++))
     do
+        # CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --reward-shape --intrinsic_reward 0.25 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th --cons-learning-epoch 20 --env-key ALE-$env --use-gpu --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method early > logs/$env\_early_intrinsic_$i.log 2>& 1 &
+        # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py  --env-key ALE-$env --use-gpu --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70  > logs/$env\_woreuse_$i.log 2>& 1 &
         # no advice
         # CUDA_VISIBLE_DEVICES=2 nohup python -u main.py --env-key ALE-$env --dqn-dueling --use-gpu > logs/$env\_noadvice_$i.log 2>& 1 &
+        # importance
+        CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-$env --use-gpu --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method importance > logs/$env\_importance_$i.log 2>& 1 &
         # rcmp
         # CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --dqn-dueling --load-teacher --advice-collection-budget 25000 --advice-collection-method rcmp --n_heads 5 --student-model-uc-th 0.011 --seed 24 > logs/$env\_rcmp_$i.log 2>& 1 &
         # AIR
@@ -43,7 +47,7 @@ do
         # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --env-key ALE-$env --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --seed 24 > logs/$env\_adap_acbyol_20epoch_newbuffer_1e6_$i.log 2>& 1 &
         # adaptive_dist with reuse
         # CUDA_VISIBLE_DEVICES=3 nohup python -u main.py --env-key ALE-$env --dqn-eps-steps 5000000 --use-gpu --save-models --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th --seed 24 > logs/$env\_adap_acbyol_reuse_RS_lateeps_$i.log 2>& 1 &
-        CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --dqn-rm-max 100000 --reward-shape  --env-key ALE-$env --use-gpu --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_adap_reuseT_RStanh0.5_decay1e6_1e6_$i.log 2>& 1 &
+        # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --dqn-rm-max 100000 --reward-shape  --env-key ALE-$env --use-gpu --load-teacher --advice-collection-budget 25000 --advice-collection-method sample_efficency --cons-learning-epoch 20 --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/$env\_adap_reuseT_RStanh0.5_decay1e6_1e6_$i.log 2>& 1 &
     done
 done
 

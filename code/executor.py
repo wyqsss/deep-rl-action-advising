@@ -561,7 +561,12 @@ class Executor:
                 elif self.config['advice_collection_method'] == 'random':
                     if random.random() < 0.5:
                         advice_collection_occurred = True
-
+                elif self.config['advice_collection_method'] == 'importance':
+                    # print(f"q_values is {q_values}")
+                    probs = softmax(q_values)
+                    # print(f"probs is {probs}")
+                    if probs.max() - probs.min() < 0.1:
+                        advice_collection_occurred = True
                 elif self.config['advice_collection_method'] == 'tabular_lookup':
                     if state_id not in self.advice_lookup_table:
                         advice_collection_occurred = True
@@ -939,7 +944,7 @@ class Executor:
             #     reuse_uncertainty = self.bc_model.get_uncertainty(obs_next) - self.config['teacher_model_uc_th'] # next obs
             #     reward += reuse_uncertainty if reuse_uncertainty > 0 else  -0.1
             if self.config['reward_shape']:
-                if self.stats.n_env_steps < 1e6:
+                if self.stats.n_env_steps < self.config['C1']:
                     # if advice_collection_occurred or reuse_advice:
                     #     if not distance:
                     #         reward += 0.5
@@ -1776,6 +1781,11 @@ def quadruplematrix(dims, left_val, down_val, right_val, up_val, ax=None, triplo
     return tripcolor
 
 # ======================================================================================================================
+
+def softmax(f):
+    # instead: first shift the values of f so that the highest number is 0:
+    f -= np.max(f) # f becomes [-666, -333, 0]
+    return np.exp(f) / np.sum(np.exp(f))  # safe to do, gives the correct answer
 
 def generate_grid_visualisation(env, config, save_path, step_number, values):
     height = env.height
