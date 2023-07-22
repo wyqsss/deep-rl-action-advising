@@ -506,6 +506,8 @@ class EpsilonGreedyDQN(DQN):
         if random.random() < self.eps:
             return super().random_action(), True, q_values
         else:
+            if self.n_heads > 1:
+                q_values = q_values.sum(axis=0)
             return np.argmax(q_values), False, q_values
 
     # ==================================================================================================================
