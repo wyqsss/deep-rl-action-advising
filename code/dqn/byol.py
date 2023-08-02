@@ -240,7 +240,7 @@ class BYOL_(object):
 
         buffer_dataset = BufferDataset(replaybuffer)
         buffer_loader = DataLoader(buffer_dataset, batch_size=self.batch_size, shuffle=True)
-        skip_num = len(buffer_dataset) // 10000 # 每次只训练一万张
+        skip_num = len(buffer_dataset) // 2500 # 每次只训练一万张
         print(f"skip num is {skip_num}")
         ep = 0
         # for _ in range(max(epochs // 2**(self.count), 10)):

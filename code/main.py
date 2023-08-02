@@ -122,9 +122,9 @@ if __name__ == '__main__':
 
     # Imitation
     parser.add_argument('--advice-imitation-method', type=str, default='none')  # 'none', 'initial', 'periodic'
-    parser.add_argument('--advice-imitation-period-steps', type=int, default=200000)
+    parser.add_argument('--advice-imitation-period-steps', type=int, default=500000)
     parser.add_argument('--advice-imitation-period-samples', type=int, default=2500)
-    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=200000)
+    parser.add_argument('--advice-imitation-training-iterations-init', type=int, default=500000)
     parser.add_argument('--advice-imitation-training-iterations-periodic', type=int, default=100000)
 
     parser.add_argument('--bc-batch-size', type=int, default=32)

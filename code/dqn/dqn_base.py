@@ -218,7 +218,7 @@ class DQN(object):
                     else:
                         hidden_layer_in = hidden_layers[-1]
 
-                hidden_layers.append(tf.compat.v1.layers.dense(hidden_layer_in, hidden_sizes[i], use_bias=True,
+                hidden_layers.append(tf.compat.v1.layers.dense(hidden_layer_in, hidden_sizes[0], use_bias=True,
                                                                kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                                activation=tf.nn.relu,
                                                                name='DENSE_LAYER_' + str(head_id) + '_' + str(i + 1)))

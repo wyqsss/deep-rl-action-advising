@@ -175,15 +175,15 @@ def plt_muti_log(name, color=None, lines=5, method='other'):
         for line in data:
             items = line.split(" ")
             if items[0] == "evaluation" and items[1] == 'success':
-                if method == 'CFDAA':
-                    if epochs[i] and epochs[i][-1] < 40000:
-                        rewards[i].append(float(items[-1]) * 100 + 8)
-                    elif epochs[i] and epochs[i][-1] < 80000:
-                        rewards[i].append(float(items[-1]) * 100 + 5)
-                    else:
-                        rewards[i].append(float(items[-1]) * 100)
-                else:
-                    rewards[i].append(float(items[-1]) * 100 - 3)
+                # if method == 'CFDAA':
+                #     if epochs[i] and epochs[i][-1] < 40000:
+                #         rewards[i].append(float(items[-1]) * 100 + 8)
+                #     elif epochs[i] and epochs[i][-1] < 80000:
+                #         rewards[i].append(float(items[-1]) * 100 + 5)
+                #     else:
+                #         rewards[i].append(float(items[-1]) * 100)
+                # else:
+                rewards[i].append(float(items[-1]))
             if items[0] == "Evaluation" and items[1] == '@':
                 epochs[i].append(int(float(items[2])))
                 # rewards[i].append(float(items[-1])) 
@@ -209,7 +209,7 @@ def plt_muti_log(name, color=None, lines=5, method='other'):
     # rewards_df = pd.DataFrame(rewards)
     # print(time_line)
     # print(rewards_df)
-    sns.tsplot(time=time_line, data=smooth(rewards, 3), color=color, ci=95)
+    sns.tsplot(time=time_line, data=smooth(rewards, 2), color=color, ci=95)
 
 def plt_reward_muti_log(name, color=None, lines=5, method='other'):
     rewards = [[] for n in range(lines)]
@@ -218,22 +218,23 @@ def plt_reward_muti_log(name, color=None, lines=5, method='other'):
         data = open(name+f"_{i+1}.log", 'r')
         for line in data:
             items = line.split(" ")
-            if items[0] == "Evaluation" and items[1] == '@':
-                if method == 'CFDAA':
-                    if epochs[i] and epochs[i][-1] < 40000:
-                        rewards[i].append(float(items[-1]) + 100)
-                    elif epochs[i] and epochs[i][-1] < 80000:
-                        rewards[i].append(float(items[-1]) + 120)
-                    else:
-                        rewards[i].append(float(items[-1]) + 30)
-                else:
-                    rewards[i].append(float(items[-1]))
+            # if items[0] == "Evaluation" and items[1] == '@':
+            #     if method == 'CFDAA':
+            #         if epochs[i] and epochs[i][-1] < 40000:
+            #             rewards[i].append(float(items[-1]) + 100)
+            #         elif epochs[i] and epochs[i][-1] < 80000:
+            #             rewards[i].append(float(items[-1]) + 120)
+            #         else:
+            #             rewards[i].append(float(items[-1]) + 30)
+            #     else:
+            #         rewards[i].append(float(items[-1]))
             if items[0] == "Evaluation" and items[1] == '@':
                 epochs[i].append(int(float(items[2])))
-                # rewards[i].append(float(items[-1])) 
+                rewards[i].append(float(items[-1])) 
 
     lengths = [len(epochs[i]) for i in range(lines)]
     print(lengths)
+    print(len(rewards[0]))
     for i in range(lines):
         if len(rewards[i]) > min(lengths):
             rewards[i] = rewards[i][:min(lengths)]
@@ -243,7 +244,7 @@ def plt_reward_muti_log(name, color=None, lines=5, method='other'):
     print(rewards.shape)
     mean_reward = np.mean(rewards, axis=0)
     # print(mean_reward)
-    print(f"mean rewrds : {mean_reward[0]}; {mean_reward[19]} ; {mean_reward[39]}") 
+    # print(f"mean rewrds : {mean_reward[0]}; {mean_reward[19]} ; {mean_reward[39]}") 
     # for i in range(len(mid_rewards)):
     #     if mid_rewards[i] > max_rewards[i] or mid_rewards[i] < min_rewards[i]:
     #         print(f"mid {mid_rewards[i]}, max {max_rewards[i]}, min {min_rewards[i]}")
@@ -256,7 +257,7 @@ def plt_reward_muti_log(name, color=None, lines=5, method='other'):
     # rewards_df = pd.DataFrame(rewards)
     # print(time_line)
     # print(rewards_df)
-    sns.tsplot(time=time_line, data=smooth(rewards, 1), color=color, ci=95)
+    sns.tsplot(time=time_line, data=smooth(rewards, 10), color=color, ci=95)
 
 def cal_area_under_curve(name, max_value=0, lines=5, method='other'):
     auc = []
@@ -386,26 +387,26 @@ colors2 = [sns.color_palette()[0], sns.color_palette()[1], sns.color_palette()[2
 #     plt.savefig(f"figures/{env}_success-v123.pdf", bbox_inches='tight')
 #     plt.close()
 
-envs = ["DW-123"]
-for env in envs:
-    p0 = plt_reward_muti_log(f"logs/dw-123/{env}_noadvice_param", color=colors2[0])
-    # p0 = plt_reward_muti_log(f"logs/{env}_noadvice_raw_final", color=colors2[0])
-    # p1 = plt_reward_muti_log(f"logs/{env}_expert_random", colors2[1])
-    # p2 = plt_reward_muti_log(f"logs/{env}_expert_early", colors2[2])
-    # p3 = plt_reward_muti_log(f"logs/{env}_new_SUAIR", colors2[3])
-    # p6 = plt_reward_muti_log(f"logs/{env}_new_random_RS", color=colors2[5])
+# envs = ["DW-123"]
+# for env in envs:
+#     p0 = plt_reward_muti_log(f"logs/dw-123/{env}_noadvice_param", color=colors2[0])
+#     # p0 = plt_reward_muti_log(f"logs/{env}_noadvice_raw_final", color=colors2[0])
+#     # p1 = plt_reward_muti_log(f"logs/{env}_expert_random", colors2[1])
+#     # p2 = plt_reward_muti_log(f"logs/{env}_expert_early", colors2[2])
+#     # p3 = plt_reward_muti_log(f"logs/{env}_new_SUAIR", colors2[3])
+#     # p6 = plt_reward_muti_log(f"logs/{env}_new_random_RS", color=colors2[5])
 
-    plt.margins(x=0, y=0)
-    plt.xlim(0, 1e5)
-    # plt.ylim(0, 100)
-    plt.grid()
-    plt.subplots_adjust(left=0.2, bottom=0.15)
-    plt.ylabel("测试成功率")
-    plt.xlabel(r'总步数 ($\times 10^5$)')
-    # plt.xticks([0,5e4,1e5,1.5e5,2e5], [0, 0.5, 1.0, 1.5, 2.0,])
-    # plt.xticks([0,2e4,4e4,6e4,8e4 , 1e5], [0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.savefig(f"figures/{env}_reward_noparam.pdf", bbox_inches='tight')
-    plt.close()
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 1e5)
+#     # plt.ylim(0, 100)
+#     plt.grid()
+#     plt.subplots_adjust(left=0.2, bottom=0.15)
+#     plt.ylabel("测试成功率")
+#     plt.xlabel(r'总步数 ($\times 10^5$)')
+#     # plt.xticks([0,5e4,1e5,1.5e5,2e5], [0, 0.5, 1.0, 1.5, 2.0,])
+#     # plt.xticks([0,2e4,4e4,6e4,8e4 , 1e5], [0, 0.2, 0.4, 0.6, 0.8, 1])
+#     plt.savefig(f"figures/{env}_reward_noparam.pdf", bbox_inches='tight')
+#     plt.close()
 
 
 # envs = ["DW-v2"]
@@ -420,32 +421,82 @@ for env in envs:
 #     # cal_area_under_curve(f"logs/{env}_ana", max_value=591+ 1581)
 #     cal_area_under_curve(f"logs/{env}_new_random_RS", max_value=400+ 2000,)
 
+envs = ["DW"]
+for env in envs:
+    fig, ax = plt.subplots()
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    p0 = plt_muti_log(f"logs/{env}_noadvice", colors2[0])
+    p1 = plt_muti_log(f"logs/{env}_random2", color=colors2[1])
+    # p2 = plt_muti_log(f"logs/{env}_early2", color=colors2[2])
+    # # p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+    # # p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+    p5 = plt_muti_log(f"logs/{env}_SUAIR2", color=colors2[3])
+    p6 = plt_muti_log(f"logs/{env}_novelty", color=colors2[4])
+    p7 = plt_muti_log(f"logs/{env}_cfdaa4", color=colors2[5])
 
+    # p8 = plt_muti_log(f"logs/dw-118/{env}_noadvice", colors2[6])
+    p9 = plt_muti_log(f"logs/{env}_cfdaa3", colors2[7])
+    x = []
+    for i in range(0, 100000, 500):
+        x.append(i)
+    y = [0.966] * len(x)
+    plt.plot(x, y, linestyle = '--')
+    plt.margins(x=0, y=0)
+    plt.xlim(0, 1e5)
+    plt.ylabel("Evaluation score")
+    plt.xlabel(r"Total Timesteps ($\times 10^5$)", fontsize=14)
+    plt.grid()
+    # plt.ylim(0, 1.2)
+    plt.xticks([0,2e4,4e4,6e4,8e4 , 1e5], [0, 0.2, 0.4, 0.6, 0.8, 1])
+    # plt.title(f"{env}")
+    # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+    plt.savefig(f"figures/{env}_result2.pdf")
+    plt.close()
+
+# envs = ["grid"]
+# for env in envs:
+#     fig, ax = plt.subplots()
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+#     p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+#     p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+#     p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+#     p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+#     p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+#     p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR", color=colors2[3])
+#     p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+#     p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}2_CFDAAadvice", color=colors2[5])
+#     x = []
+#     for i in range(0, 100000, 500):
+#         x.append(i)
+#     y = [1.0] * len(x)
+#     plt.plot(x, y, linestyle = '--')
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 1e5)
+#     plt.ylabel("Evaluation score")
+#     plt.xlabel(r"Total Timesteps ($\times 10^5$)", fontsize=14)
+#     plt.grid()
+#     plt.ylim(0, 1.2)
+#     plt.xticks([0,2e4,4e4,6e4,8e4 , 1e5], [0, 0.2, 0.4, 0.6, 0.8, 1])
+#     # plt.title(f"{env}")
+#     # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+#     plt.savefig(f"figures/{env}_result.pdf")
+#     plt.close()
 
 # envs = ["Pong"]
 # for env in envs:
 #     fig, ax = plt.subplots()
 #     ax.spines['right'].set_visible(False)
 #     ax.spines['top'].set_visible(False)
-#     p0 = plt_muti_log(f"logs/final_experiment_data/SUAIR/{env}_SUAIR", colors[2])
-#     p1 = plt_muti_log(f"logs/final_experiment_data/no advice/{env}_noadvice", color=colors[1])
-#     p2 = plt_muti_log(f"logs/final_experiment_data/ours/{env}_adap_reuseT_RStanh0.25decay", color=colors[0])
-#     p3 = plt_muti_log(f"logs/final_experiment_data/novelty/{env}_novelty", color=colors[3])
-#     # p2 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_onetrain_true", colors[1])
-#     # p3 = plt_muti_log(f"logs/{env}_adap_acbyol_100epoch_true", colors[2])
-#     # p4 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_100epoch_true", colors[3])
-#     # p5 = plt_muti_log(f"logs/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
-#     # p5 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_clearbuf_true", color='cyan')
-#     # p6 = plt_muti_log(f"/mnt/nfs/wyq/{env}/{env}_adap_acbyol_20epoch_newnet_reuse", color=colors[0])
-#     # p7 = plt_muti_log(f"/nfs3-p1/wyq/gpu05/logs/{env}_adap_reuse_RS0.2_rewarddecay", color='y')
-#     # p8 = plt_muti_log(f"logs/{env}_adap_reuseT_distRS_Big0tanh0.2_1e6", color=colors[3])
-#     # p9 = plt_muti_log(f"logs/{env}_adap_reuseT_distRS_tanh0.1decay_1e6", color='b')
-#     # p10 = plt_muti_log(f"logs/{env}_adap_reuse_distRStanh0.1_6e5", color='y')
-#     # p11 = plt_muti_log(f"/nfs3-p1/wyq/{env}_adap_reusedecay_distRStanh0.3_1e6", colors[0])
-#     # p12 = plt_muti_log(f"/nfs3-p1/wyq/{env}_adap_reuseT", color='c')
-#     # p13 = plt_muti_log(f"logs/{env}_adap_reuseT_RS0.2_1e6", color=colors[0])
-#     # p14 = plt_muti_log(f"logs/{env}_adap_reuseT_RS0.2_2e6", color=colors[1])
-#     p15 = plt_muti_log(f"logs/{env}_adap_reuseT_RStanh0.25_decay8e5_1e6", color='black')
+#     p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+#     p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+#     p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+#     p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+#     p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+#     p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR_rate", color=colors2[3])
+#     p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+#     p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}_adap_reuseT_RStanh0.25decay", color=colors2[5])
 #     x = []
 #     for i in range(0, 5000000, 50000):
 #         x.append(i)
@@ -453,14 +504,131 @@ for env in envs:
 #     plt.plot(x, y, linestyle = '--')
 #     plt.margins(x=0, y=0)
 #     plt.xlim(0, 5e6)
-#     plt.ylabel("Evaluation score")
-#     plt.xlabel("Millions of envirionment steps")
+#     # plt.ylabel("Evaluation score")
+#     plt.xlabel(r"Total Timesteps ($\times 10^6$)", fontsize=14)
+#     plt.grid()
+#     # plt.ylim(0, 5e6)
+#     plt.xticks([0,1e6,2e6,3e6,4e6 , 5e6], [0, 1, 2, 3, 4, 5])
+#     # plt.title(f"{env}")
+#     # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+#     plt.savefig(f"figures/{env}_result.pdf")
+#     plt.close()
+# envs = ["Freeway"]
+# for env in envs:
+#     fig, ax = plt.subplots()
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+#     p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+#     p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+#     p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+#     p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+#     p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+#     p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR", color=colors2[3])
+#     p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+#     p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}_adap_reuse_distRStanh_decay_1e6", color=colors2[5])
+#     x = []
+#     for i in range(0, 5000000, 50000):
+#         x.append(i)
+#     y = [28.8] * len(x)
+#     plt.plot(x, y, linestyle = '--')
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 5e6)
+#     # plt.ylabel("Evaluation score")
+#     plt.xlabel(r"Total Timesteps ($\times 10^6$)", fontsize=14)
 #     plt.grid()
 #     # plt.xlim(0, 5e6)
-#     plt.title(f"{env}")
-#     plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
-#     plt.savefig(f"figures/{env}_result")
+#     # plt.title(f"{env}")
+#     plt.xticks([0,1e6,2e6,3e6,4e6 , 5e6], [0, 1, 2, 3, 4, 5])
+#     # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+#     plt.savefig(f"figures/{env}_result.pdf")
 #     plt.close()
+# envs = ["Qbert"]
+# for env in envs:
+#     fig, ax = plt.subplots()
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+#     p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+#     p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+#     p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+#     p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+#     p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+#     p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR", color=colors2[3])
+#     p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+#     p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}_adap_reuse_RS_zetadecay", color=colors2[5])
+#     x = []
+#     for i in range(0, 5000000, 50000):
+#         x.append(i)
+#     y = [3705] * len(x)
+#     plt.plot(x, y, linestyle = '--')
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 5e6)
+#     # plt.ylabel("Evaluation score")
+#     plt.xlabel(r"Total Timesteps ($\times 10^6$)", fontsize=14)
+#     plt.grid()
+#     plt.ylim(0, 5000)
+#     # plt.title(f"{env}")
+#     plt.xticks([0,1e6,2e6,3e6,4e6 , 5e6], [0, 1, 2, 3, 4, 5])
+#     # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+#     plt.savefig(f"figures/{env}_result.pdf")
+#     plt.close()
+# envs = ["Seaquest"]
+# for env in envs:
+#     fig, ax = plt.subplots()
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+#     p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+#     p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+#     p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+#     p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+#     # p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+#     p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR", color=colors2[3])
+#     p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+#     p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}_adap_reuseT_distRStanh0.5_decay_1e6", color=colors2[5])
+#     x = []
+#     for i in range(0, 5000000, 50000):
+#         x.append(i)
+#     y = [8178] * len(x)
+#     plt.plot(x, y, linestyle = '--')
+#     plt.margins(x=0, y=0)
+#     plt.xlim(0, 5e6)
+#     # plt.ylabel("Evaluation score")
+#     plt.xlabel(r"Total Timesteps ($\times 10^6$)", fontsize=14)
+#     plt.grid()
+#     plt.ylim(0, 10000)
+#     plt.xticks([0,1e6,2e6,3e6,4e6 , 5e6], [0, 1, 2, 3, 4, 5])
+#     # plt.title(f"{env}")
+#     # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+#     plt.savefig(f"figures/{env}_result.pdf")
+#     plt.close()
+# envs = ["Enduro"]
+# for env in envs:
+    # fig, ax = plt.subplots()
+    # ax.spines['right'].set_visible(False)
+    # ax.spines['top'].set_visible(False)
+    # p0 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice", colors2[0])
+    # p1 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random", color=colors2[1])
+    # p2 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early", color=colors2[2])
+    # p3 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance", color=colors2[6])
+    # p4 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp", color=colors2[7])
+    # p5 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR", color=colors2[3])
+    # p6 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty", color=colors2[4])
+    # p7 = plt_reward_muti_log(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}_adap_reuseT_RStanh0.2_decay1e6_1e6", color=colors2[5])
+    # x = []
+    # for i in range(0, 5000000, 50000):
+    #     x.append(i)
+    # y = [1556] * len(x)
+    # plt.plot(x, y, linestyle = '--')
+    # plt.margins(x=0, y=0)
+    # plt.xlim(0, 5e6)
+    # # plt.ylabel("Evaluation score")
+    # plt.xlabel(r"Total Timesteps ($\times 10^6$)", fontsize=14)
+    # plt.grid()
+    # # plt.xlim(0, 5e6)
+    # # plt.title(f"{env}")
+    # plt.xticks([0,1e6,2e6,3e6,4e6 , 5e6], [0, 1, 2, 3, 4, 5])
+    # # plt.legend([p1, p0, p3, p2], ['noadvice', 'SUAIR', 'novelty', 'our method', 'zeta2000_reuse0.5_usesubmodel'])
+    # plt.savefig(f"figures/{env}_result.pdf")
+    # plt.close()
 # envs = ["Freeway"]
 # for env in envs:
 #     fig, ax = plt.subplots()
@@ -682,3 +850,148 @@ def plt_muti_rate(name, color=None, lines=5):
 #     plt.legend([p0, p2], ['SUAIR', 'our method', 'RS0.1'])
 #     plt.savefig(f"figures/{env}_rate.pdf")
 #     plt.close()
+
+def cal_atari_under_curve(name, max_value=0, lines=5, method='other'):
+    auc = []
+    # max_value = 0
+    rewards = [[] for n in range(lines)]
+    # epochs = [[] for n in range(lines)]
+    for i in range(lines):
+        data = open(name+f"_{i+1}.log", 'r')
+        if 'Pong' in name:
+            rewards[i].append(0)
+            
+        for line in data:
+            items = line.split(" ")
+            if items[0] == "Evaluation" and items[1] == '@':
+                # epochs[i].append(int(float(items[2])))
+                if int(float(items[2])) > 5e6:
+                    # print(f"length is {len(rewards[i])}")
+                    break
+
+                if 'Pong' in name:
+                    rewards[i].append(float(items[-1]) + 21)
+                else:
+                    rewards[i].append(float(items[-1]))
+    #             if float(items[-1]) > max_value:
+    #                 max_value = float(items[-1])
+    # print(f"max value is {max_value} ")
+    for i in range(lines):
+        s = 0
+        for j in range(100):
+            s += ((rewards[i][j]/max_value + rewards[i][j+1]/max_value) / 2) * 0.01
+        auc.append(s)
+    # print(f"auc is {auc}")
+    print(f"mean auc : {np.mean(auc)} , devi auc : {np.std(auc)}")
+
+
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Enduro_woreuse", max_value=1800) # mean auc : 0.47384002777777773 , devi auc : 0.026399347598414488
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Enduro_early_intrinsic", max_value=1800) # mean auc : 0.4304593333333332 , devi auc : 0.0136871034486217
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Pong_woreuse", max_value=39, lines=3) # mean auc : 0.5210961538461539 , devi auc : 0.02870538635111044
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Pong_early_intrinsic", max_value=39, lines=3) # mean auc : 0.6125747863247865 , devi auc : 0.04055750346568949
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Seaquest_woreuse", max_value=12000) # 0.3053277916666667 , devi auc : 0.03465855255866591
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Seaquest_early_intrinsic", max_value=12000) # mean auc : 0.24572270833333332 , devi auc : 0.02783221489862414
+
+cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Freeway_early_intrinsic", max_value=35) # mean auc : 0.8218642857142857 , devi auc : 0.010428219172133019
+cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Freeway_adap", max_value=35) # mean auc : 0.5780285714285714 , devi auc : 0.027430204564475674
+
+cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Qbert_early_intrinsic", max_value=5500) # mean auc : 0.4092199999999999 , devi auc : 0.05614782036937316
+cal_atari_under_curve("/mnt/nfs3-p1/wyq/ablation_study/Qbert_adap", max_value=5500) # mean auc : 0.1916272727272727 , devi auc : 0.03811271131717451
+
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Pong_adap_reuseT_RStanh0.25decay", max_value=39)
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Freeway_adap_reuse_distRStanh_decay_1e6", max_value=35)
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Enduro_adap_reuseT_RStanh0.2_decay1e6_1e6", max_value=1800)
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Qbert_adap_reuse_RS_zetadecay", max_value=5500)
+# cal_atari_under_curve("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Seaquest_adap_reuseT_distRStanh0.5_decay_1e6", max_value=12000)
+
+def plot_bar(auc1, auc2, auc3, name):
+    fig, ax = plt.subplots()
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    plt.bar("cfdaa", auc1, color="#ff6600")
+    plt.bar("w/o selector", auc2, color="#ffa64d")
+    plt.bar("w/o generator", auc3, color="#ffcc99")
+    plt.ylabel("AUC")
+    plt.xlabel("Method")
+    plt.savefig(f"figures/{name}.pdf")
+
+# plot_bar(0.49, 0.47, 0.43, "Enduro_ablation")
+# plot_bar(0.37, 0.25, 0.30, "Seaquest_ablation")
+# plot_bar(0.62, 0.52, 0.30, "Pong_ablation")
+# plot_bar(0.87, 0.84, 0.85, "Grid_ablation")
+# plot_bar(0.54, 0.40, 0.19, "Qbert_ablation")
+# plot_bar(0.85, 0.82, 0.58, "Freeway_ablation")
+
+from collections import deque
+
+def cal_values(name, lines=5):
+    t_rewards = deque(maxlen=500)
+    early_score = []
+    early_std = 0
+    mid_score = []
+    mid_std = 0
+    final_score = []
+    final_std = 0
+    for i in range(lines):
+        data = open(name+f"_{i+1}.log", 'r')
+            
+        for line in data:
+            items = line.split(" ")
+            if items[0] == "Evaluation" and items[1] == '@':
+                # epochs[i].append(int(float(items[2])))
+                if int(float(items[2])) == 2e4:
+                    early_score.append(np.mean(t_rewards))
+                    # print(t_rewards)
+                if int(float(items[2])) == 6e4:
+                    mid_score.append(np.mean(t_rewards))
+                if int(float(items[2])) == 1e5:
+                    final_score.append(np.mean(t_rewards))
+            if items[0] == "n_episodes":
+                t_rewards.append(float(items[10]))
+
+    print(f"early socre is : {np.mean(early_score)} std : {np.std(early_score)} , middle score is : {np.mean(mid_score)} std : {np.std(mid_score)} , final score is {np.mean(final_score)} std : {np.std(final_score)}")
+
+def cal_final_values(name, lines=5):
+    t_rewards = []
+    early_score = 0
+    mid_score = 0
+    final_score = 0
+    for i in range(lines):
+        data = open(name+f"_{i+1}.log", 'r')
+            
+        for line in data:
+            items = line.split(" ")
+            if items[0] == "Evaluation" and items[1] == '@':
+                # epochs[i].append(int(float(items[2])))
+                if int(float(items[2])) == 1e5:
+                    t_rewards.append(float(items[-1]))
+
+    print(f"final socre is : {np.mean(t_rewards)} ")
+
+envs = ["grid"]
+for env in envs:
+
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/noadvice/{env}_noadvice")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/random/{env}_random")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/early/{env}_early")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/importance/{env}_importance")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/rcmp/{env}_rcmp")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/{env}_SUAIR")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/novelty/{env}_novelty")
+    cal_values(f"/mnt/nfs3-p1/wyq/final_experiment_data/ours/{env}2_CFDAAadvice")
+#     early socre is : 0.0 , middle score is : 0.04 , final score is 0.91
+# early socre is : 0.91 , middle score is : 0.8866666666666667 , final score is 0.9
+# early socre is : 0.12 , middle score is : 0.9166666666666666 , final score is 0.8666666666666667
+# early socre is : 0.37333333333333335 , middle score is : 0.95 , final score is 0.93
+# early socre is : 0.25333333333333335 , middle score is : 0.013333333333333334 , final score is 0.7833333333333333
+# early socre is : 0.83 , middle score is : 0.9333333333333333 , final score is 0.9566666666666667
+# early socre is : 0.9033333333333333 , middle score is : 0.9166666666666666 , final score is 0.9333333333333333
+# early socre is : 0.93 , middle score is : 0.9333333333333333 , final score is 0.9633333333333334
+
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Pong_adap_reuseT_RStanh0.25decay")
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Freeway_adap_reuse_distRStanh_decay_1e6")
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Enduro_adap_reuseT_RStanh0.2_decay1e6_1e6")
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Qbert_adap_reuse_RS_zetadecay")
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/ours/Seaquest_adap_reuseT_distRStanh0.5_decay_1e6")
+
+# cal_values("/mnt/nfs3-p1/wyq/final_experiment_data/SUAIR/Qbert_SUAIR")
