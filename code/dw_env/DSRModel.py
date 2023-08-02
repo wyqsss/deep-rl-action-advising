@@ -16,11 +16,10 @@ class DSRModel:
         pp.runpp(self.net)
         # 读取初始开关状态
         self.sw_state_base = self.net.switch.closed.values.copy()
+        self.line_in_service_base = self.net.line.in_service.values.copy()
         # 常闭/常开开关
         self.sw_always_open = np.where(self.sw_state_base == True)[0]
         self.sw_always_close = np.where(self.sw_state_base == False)[0]
-
-        self.line_in_service_base = self.net.line.in_service
         # 读取初始节点有功无功
         self.p_load_base = cp.copy(self.net.load.p_mw.values.copy())
         self.q_load_base = cp.copy(self.net.load.q_mvar.values.copy())
@@ -34,26 +33,50 @@ class DSRModel:
         self.p_loss_base = 0
         self.sw_fault = 0
         self.action_count = 0
+        self.line_nums = 1
+        self.lines = np.load('dw_env/fault_line_switch.npy', allow_pickle=True)
+
         # 初始化潮流
         pp.runpp(self.net)
 
-    def reset(self):
+    def reset(self, test=True, test_id=None):
         # 重置开关状态
         self.net.switch.closed = self.sw_state_base
-
-        # 施加线路故障
         self.net.line.in_service = self.line_in_service_base
-        self.net.line.in_service[np.random.randint(0, len(self.net.line), size=1)] = False
-        while 0 in np.asarray(nx.Graph(tp.create_nxgraph(self.net)).degree)[:, 1]:
-            self.net.line.in_service = self.line_in_service_base
-            self.net.line.in_service[np.random.randint(0, len(self.net.line), size=1)] = False
-        # 节点有功无功随机波动
-        # random_array = (np.random.random(self.p_load_base.shape[0]) * 2 - 1) * 0.2 + 1  # 生成[0.8~1.2]的随机数组
-        # self.net.load.p_mw = self.p_load_base * random_array
-        # self.net.load.q_mvar = self.q_load_base * random_array
-        # 施加随机故障
-        self.sw_fault = np.random.choice(self.sw_always_open, 1)[0]
-        self.net.switch.closed[self.sw_fault] = False
+        if test:
+            self.rnd_line = np.random.randint(0, len(self.lines))
+            self.sample_chronics = self.lines[self.rnd_line]
+            self.net.line.in_service[self.sample_chronics[0][0]] = False
+            assert 0 not in np.asarray(nx.Graph(tp.create_nxgraph(self.net)).degree)[:, 1]
+            # self.net.line.in_service = self.line_in_service_base
+            # # self.rnd_line = np.random.randint(0, len(self.net.line), size=self.line_nums)
+            # # self.rnd_line = np.random.choice(self.lines, 1)[0]
+            # # self.net.line.in_service[self.rnd_line[0]] = False
+            # # self.sample_chronics = np.random.randint(0, len(self.lines))
+            # self.net.line.in_service[self.sample_chronics[0][0]] = False
+            # 节点有功无功随机波动
+            # random_array = (np.random.random(self.p_load_base.shape[0]) * 2 - 1) * 0.2 + 1  # 生成[0.8~1.2]的随机数组
+            # self.net.load.p_mw = self.p_load_base * random_array
+            # self.net.load.q_mvar = self.q_load_base * random_array
+            # 施加随机故障
+            self.sw_fault = self.sample_chronics[1]
+            self.net.switch.closed[self.sw_fault] = False
+        else:
+            self.rnd_line = np.random.randint(0, len(self.net.line), size=self.line_nums)
+            # self.sample_chronics = np.random.randint(0, len(self.lines))
+            self.net.line.in_service[self.rnd_line] = False
+            while 0 in np.asarray(nx.Graph(tp.create_nxgraph(self.net)).degree)[:, 1]:
+                self.net.line.in_service = self.line_in_service_base
+                self.rnd_line = np.random.randint(0, len(self.net.line), size=self.line_nums)
+                # self.rnd_line = np.random.choice(self.lines, 1)[0]
+                self.net.line.in_service[self.rnd_line] = False
+            # 节点有功无功随机波动
+            # random_array = (np.random.random(self.p_load_base.shape[0]) * 2 - 1) * 0.2 + 1  # 生成[0.8~1.2]的随机数组
+            # self.net.load.p_mw = self.p_load_base * random_array
+            # self.net.load.q_mvar = self.q_load_base * random_array
+            # 施加随机故障
+            self.sw_fault = np.random.choice(self.sw_always_open, 1)[0]
+            self.net.switch.closed[self.sw_fault] = False
         # 潮流计算初始化
         pp.runpp(self.net)
         # 重置状态量
@@ -89,12 +112,12 @@ class DSRModel:
     def get_bus_state(self):
         # 各列分别为节点状态量：电压幅值，电压相角
         return np.r_[self.net.res_bus.vm_pu.values.copy(),
-                     self.net.res_bus.va_degree.values.copy()]
+        self.net.res_bus.va_degree.values.copy()]
 
     def get_line_state(self):
         # 各列分别为支路状态量：有功功率，无功功率
         return np.r_[self.net.res_line.p_from_mw.values.copy(),
-                     self.net.res_line.q_from_mvar.values.copy()]
+        self.net.res_line.q_from_mvar.values.copy()]
 
     def get_sw_state(self):
         return self.net.switch.closed.values.copy()

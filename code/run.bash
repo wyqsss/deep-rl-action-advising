@@ -62,6 +62,7 @@ done
 
 
 
+<<<<<<< HEAD
 # for ((i=1; i < 6;i ++))
 # do
 #     # no advice
@@ -76,3 +77,10 @@ done
 #     # SUAIR
 #     # CUDA_VISIBLE_DEVICES=1 nohup python -u main.py --dqn-rm-init 2500 --load-teacher  --dqn-eps-steps 50000 --env-key DW-v1 --dqn-n-hidden-layers 2 --n-training-frames 100000 --use-gpu --advice-collection-budget 5000 --dqn-twin --advice-collection-method student_model_uc --dqn-dueling --use-proportional-student-model-uc-th --proportional-student-model-uc-th-percentile 70 --advice-imitation-method periodic --advice-reuse-method extended --autoset-teacher-model-uc-th > logs/DW_SUAIR2_$i.log 2>& 1 &
 # done
+=======
+for ((i=1; i < 6;i ++))
+do
+    # no advice
+    CUDA_VISIBLE_DEVICES=0 nohup python -u main.py --dqn-rm-init 1000 --dqn-target-update 750 --dqn-learning-rate 0.0001 --dqn-eps-steps 25000 --save-models --env-key DW-123 --evaluation-period 1000 --model-save-period 5000 --dqn-dueling --use-gpu  > logs/dw-123/DW-123_noadvice_easy_$i.log 2>& 1 &
+done
+>>>>>>> 2ea0c8586acec4895dd46872c84027bf647af488

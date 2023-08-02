@@ -46,9 +46,9 @@ class DSREnv:
         self.fault_max = self.model.get_sw_num()
         # 状态空间定义：故障开关，上一次动作开关，节点电压幅值，节点电压相角，支路有功功率，支路无功功率，当前开关状态
         observation_space_lb = np.float32(np.r_[self.fault_min, self.fault_min,
-                                                self.vm_min, self.va_min, self.p_min, self.q_min, self.sw_min])
+        self.vm_min, self.va_min, self.p_min, self.q_min, self.sw_min])
         observation_space_ub = np.float32(np.r_[self.fault_max, self.fault_max,
-                                                self.vm_max, self.va_max, self.p_max, self.q_max, self.sw_max])
+        self.vm_max, self.va_max, self.p_max, self.q_max, self.sw_max])
         # 定义gym动作空间，第一个动作为开断，第二个动作为闭合
         self.action_space = spaces.Discrete(self.model.get_sw_num())
         # 定义gym观测空间
@@ -75,6 +75,25 @@ class DSREnv:
                  (1 / (self.model.get_action_count() + BETA)) * \
                  (1 / (self.model.get_power_loss() + GAMMA))
 
+        reward = -2 if (self.model.get_power_unsupplied() > self.last_power_unsupplied) else reward
+
+        done = bool(
+            # 终止条件1：完成供电恢复
+            (self.model.get_power_unsupplied() == 0 and len(self.model.get_loop()) == 0)
+            # 终止条件2：电压越限
+            or (self.model.get_over_voltage() > 0)
+            # 终止条件3：功率越限 (数据缺失，暂时忽略)
+            # or (self.model.get_over_load() > 0)
+            # 终止条件5：动作次数越限
+            or (self.model.get_action_count() > MAX_ACTION_COUNT)
+            # 终止条件6：连续重复动作
+            or (self.last_action == action)
+            # 终止条件7：故障开关动作
+            or (self.model.get_fault() == action)
+            # 终止条件8：失负荷量增加
+            # or (self.model.get_power_unsupplied() > self.last_power_unsupplied)
+        )
+
         # 惩罚1：计算电压越限惩罚
         reward -= (self.model.get_over_voltage() * C0)
         # 惩罚2：计算功率越限惩罚 (数据缺失，暂时忽略)
@@ -88,31 +107,34 @@ class DSREnv:
         # 惩罚6：失负荷量增加
         reward -= (C1 if (self.model.get_power_unsupplied() > self.last_power_unsupplied) else 0)
 
-        done = bool(
-            # 终止条件1：完成供电恢复
-            (self.model.get_power_unsupplied() == 0 and len(self.model.get_loop()) == 0)
-            # 终止条件2：电压越限
-            or (self.model.get_over_voltage() > 0)
-            # 终止条件3：功率越限 (数据缺失，暂时忽略)
-            or (self.model.get_over_load() > 0)
-            # 终止条件5：动作次数越限
-            or (self.model.get_action_count() > MAX_ACTION_COUNT)
-            # 终止条件6：连续重复动作
-            or (self.last_action == action)
-            # 终止条件7：故障开关动作
-            or (self.model.get_fault() == action)
-            # 终止条件8：失负荷量增加
-            or (self.model.get_power_unsupplied() > self.last_power_unsupplied)
-        )
-
+        if done:
+            if self.model.get_power_unsupplied() == 0 and len(self.model.get_loop()) == 0:
+                print('完成供电恢复')
+                reward += 20
+            else:
+                reward -= 10
+                if self.model.get_over_voltage() > 0:
+                    print('电压越限')
+                # elif self.model.get_over_load() > 0:
+                #     print('功率越限 (数据缺失，暂时忽略)')
+                elif self.model.get_action_count() > MAX_ACTION_COUNT:
+                    print('动作次数越限')
+                elif self.last_action == action:
+                    print('连续重复动作')
+                elif self.model.get_fault() == action:
+                    print('故障开关动作')
+                elif self.model.get_power_unsupplied() > self.last_power_unsupplied:
+                    print('失负荷量增加')
+                else:
+                    print('未知终止条件')
         # 更新动作后状态
         self.last_action = action
         self.last_power_unsupplied = self.model.get_power_unsupplied()
 
         return np.array(state, dtype=np.float32), reward, done, False, {}
 
-    def reset(self):
-        self.model.reset()
+    def reset(self, test=False, test_id=None):
+        self.model.reset(test, test_id)
         self.last_action = self.model.get_fault()
         self.last_power_unsupplied = self.model.get_power_unsupplied()
         # 调用状态函数，返回新的状态
@@ -120,16 +142,11 @@ class DSREnv:
 
     def get_state(self):
         result = np.r_[self.model.get_fault(),  # 故障开关
-                       self.last_action,  # 上一次动作开关
-                       self.model.get_bus_state(),  # 节点电压幅值，节点电压相角
-                       self.model.get_line_state(),  # 支路有功功率，支路无功功率
-                       self.model.get_sw_state().astype(int)]  # 当前开关状态
+        self.last_action,  # 上一次动作开关
+        self.model.get_bus_state(),  # 节点电压幅值，节点电压相角
+        self.model.get_line_state(),  # 支路有功功率，支路无功功率
+        self.model.get_sw_state().astype(int)]  # 当前开关状态
         # 失电节点电压暂定为1，避免产生电压越限惩罚
         result[np.isnan(result)] = 1
 
         return result
-
-if __name__ == '__main__':
-    env = DSREnv()
-    print(env.action_space.n)
-    print(env.observation_space.shape[0])
